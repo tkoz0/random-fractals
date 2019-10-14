@@ -1,2 +1,10 @@
 *.out
+*.o
 *.pyc
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.pbm
+*.pgm
+*.ppm
