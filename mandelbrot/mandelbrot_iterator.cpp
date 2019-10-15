@@ -21,6 +21,9 @@ typedef struct { num_t x, y; } complex_t;
 // rendering boundaries
 num_t xmin, xmax, ymin, ymax;
 
+// center points
+num_t xcenter, ycenter;
+
 // rendering region dimensions (widths)
 num_t xwidth, ywidth;
 
@@ -148,7 +151,7 @@ int main(int argc, char **argv)
     // ./a.out <file> <xpix> <ypix> <x1> <y1> <xwidth> <ywidth> <iter>
     if (argc != 8)
     {
-        printf("Usage: ./a.out <xpix> <ypix> <x1> <y1> <xwidth> <ywidth> <iter>\n");
+        printf("Usage: ./a.out <xpix> <ypix> <xcenter> <ycenter> <xwidth> <ywidth> <iter>\n");
         return 1;
     }
 
@@ -156,14 +159,14 @@ int main(int argc, char **argv)
     xpix = atoi(argv[1]);
     ypix = atoi(argv[2]);
 #ifdef FP64
-    xmin = atof(argv[3]);
-    ymin = atof(argv[4]);
+    xcenter = atof(argv[3]);
+    ycenter = atof(argv[4]);
     xwidth = atof(argv[5]);
     ywidth = atof(argv[6]);
 #else
 #ifdef FP128
-    xmin = strtoflt128(argv[3],nullptr);
-    ymin = strtoflt128(argv[4],nullptr);
+    xcenter = strtoflt128(argv[3],nullptr);
+    ycenter = strtoflt128(argv[4],nullptr);
     xwidth = strtoflt128(argv[5],nullptr);
     ywidth = strtoflt128(argv[6],nullptr);
 #endif
@@ -173,11 +176,12 @@ int main(int argc, char **argv)
     // check command line arguments
     assert(xpix > 1 && xpix <= 10000); // for now, cap image size
     assert(ypix > 1 && ypix <= 10000);
-    assert(xwidth > 0 && ywidth > 0);
     assert(iterlim > 0 && iterlim <= 1000000); // cap iterations for now
     // dont check xwidth and ywidth, allow negatives to reflect image
 
     // finish variable assignment
+    xmin = xcenter - xwidth/2.0;
+    ymin = ycenter - ywidth/2.0;
     xmax = xmin + xwidth;
     ymax = ymin + ywidth;
 
