@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <math.h>
 #include <quadmath.h>
+#include <chrono>
+#include <iostream>
 
 // require defining FP64 or FP128 for floating point precision
 
@@ -63,35 +65,31 @@ void init_arr() // array initialization
 
 void render_ST() // single threaded renderer
 {
-    for (uint32_t iter = 0; iter < iterlim; ++iter)
+    complex_t *vptr = values; // value pointer
+    complex_t *pptr = points; // point coordinates pointer
+    complex_t *vptr_end = vptr + (xpix * ypix);
+    for (; vptr < vptr_end; ++vptr, ++pptr)
     {
-        complex_t *vptr = values; // value pointer
-        complex_t *pptr = points; // point coordinates pointer
-        complex_t *vptr_end = vptr + (xpix * ypix);
-        for (; vptr < vptr_end; ++vptr, ++pptr)
+        uint64_t *vptr64 = (uint64_t*) vptr; // for storing integers
+        uint32_t iter = 0; // iteration counter
+        for (; iter < iterlim; ++iter)
         {
-            uint64_t *vptr64 = (uint64_t*) vptr; // for storing integers
-#ifdef FP64
-            if (vptr64[1] == (uint64_t) -1) continue; // zeroed out y bytes = diverged
-#else
-#ifdef FP128
-            if (vptr64[2] == (uint64_t) -1) continue; // first half of y bytes zeroed out
-#endif
-#endif
-            num_t xsquare = vptr->x * vptr->x; // compute, used to iterate
+            num_t xsquare = vptr->x * vptr->x;
             num_t ysquare = vptr->y * vptr->y;
             if (xsquare + ysquare > 4.0) // diverged (magnitude > 2)
             {
-                *vptr64 = (uint64_t) iter; // iterations in lowest bytes
-                *(++vptr64) = -1; // put ones in higher bytes
+                *vptr64 = (uint64_t) iter; // store iteration count
+                *(++vptr64) = -1; // ones in higher bytes
 #ifdef FP128
                 *(++vptr64) = -1;
                 *(++vptr64) = -1;
 #endif
+                break;
             }
-            else // iterate
-                // (x,y) --> (x*x-y*y,2*x*y) + (px,py)
-                *vptr = { xsquare - ysquare + pptr->x, 2.0 * vptr->x * vptr->y + pptr->y };
+            // iterate (x,y) --> (x*x-y*y,2*x*y) + (px,py)
+            *vptr = { xsquare - ysquare + pptr->x, 2.0 * vptr->x * vptr->y + pptr->y };
+            // tribrot (x,y) --> (x*x) --> (x*x*x-3*x*y*y,3*x*x*y-y*y*y) + (px,py)
+//            *vptr = { vptr->x * (xsquare - 3.0 * ysquare) + pptr->x, vptr->y * (3.0 * xsquare - ysquare) + pptr->y };
         }
     }
 }
@@ -185,10 +183,21 @@ int main(int argc, char **argv)
     xmax = xmin + xwidth;
     ymax = ymin + ywidth;
 
+    fprintf(stderr,"image dimension: %u x %u\n",xpix,ypix);
+    fprintf(stderr,"center location: %s %s\n",argv[3],argv[4]);
+    fprintf(stderr,"complex plane widths: %s %s\n",argv[5],argv[6]);
+    fprintf(stderr,"iterations computed: %u\n",iterlim);
+
+    auto time_start = std::chrono::high_resolution_clock::now();
+
     init_arr(); // initialize array
     render_ST(); // single threaded render
     output_data(); // write file
     cleanup(); // deallocate memory
+
+    auto time_end = std::chrono::high_resolution_clock::now();
+    uint64_t time_nano = std::chrono::duration_cast<std::chrono::nanoseconds>(time_end-time_start).count();
+    fprintf(stderr,"computation time: %lf\n",time_nano/1.0E9);
 
     return 0;
 }
