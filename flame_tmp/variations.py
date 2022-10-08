@@ -1,3 +1,10 @@
+# variations
+# note for efficietly in C
+# - use sincos to compute sin and cos
+# - cache values that get reused
+
+# TODO FIXME avoid division by 0
+
 import math
 import random
 
@@ -9,11 +16,16 @@ affine = tuple[float,float,float,float,float,float]
 def _r(x: float, y: float) -> float:
     return math.sqrt(x*x+y*y)
 
+def _r2(x: float, y: float) -> float:
+    return x*x+y*y
+
 def _theta(x: float, y: float) -> float:
-    return math.atan(x/y)
+    #return math.atan(x/y)
+    return math.atan2(x,y)
 
 def _phi(x: float, y: float) -> float:
-    return math.atan(y/x)
+    #return math.atan(y/x)
+    return math.atan2(y,x)
 
 def _omega() -> float:
     return math.pi if random.choice([False,True]) else 0.0
@@ -33,14 +45,13 @@ def sinusoidal(x: float, y: float) -> point:
     return math.sin(x),math.sin(y)
 
 def spherical(x: float, y: float) -> point:
-    r = _r(x,y)
-    r2 = r*r
+    r2 = _r2(x,y)
     return x/r2,y/r2
 
 def swirl(x: float, y: float) -> point:
-    r = _r(x,y)
-    r2 = r*r
-    return x*math.sin(r2)-y*math.cos(r2),x*math.cos(r2)+y*math.sin(r2)
+    r2 = _r2(x,y)
+    s,c = math.sin(r2),math.cos(r2)
+    return x*s-y*c,x*c+y*s
 
 def horseshoe(x: float, y: float) -> point:
     r = _r(x,y)
@@ -78,7 +89,7 @@ def hyperbolic(x: float, y: float) -> point:
 
 def diamond(x: float, y: float) -> point:
     r = _r(x,y)
-    theta = _r(x,y)
+    theta = _theta(x,y)
     return math.sin(theta)*math.cos(r),math.cos(theta)*math.sin(r)
 
 def ex(x: float, y: float) -> point:
@@ -88,9 +99,10 @@ def ex(x: float, y: float) -> point:
     p1 = math.cos(theta-r)
     return r*(p0**3+p1**3),r*(p0**3-p1**3)
 
-def julia(x: float, y: float, omega: float = 0.0) -> point:
+def julia(x: float, y: float) -> point:
     theta = _theta(x,y)
     sr = math.sqrt(_r(x,y))
+    omega = _omega()
     return sr*math.cos(theta/2+omega),sr*math.sin(theta/2+omega)
 
 def bent(x: float, y: float) -> point:
@@ -127,21 +139,16 @@ def rings(x: float, y: float, af: affine) -> point:
     _,_,c,_,_,_ = af
     r = _r(x,y)
     theta = _theta(x,y)
-    # ((r + c^2) mod (2c^2) - c^2 + r*(1 - c^2)) * (cos(theta),sin(theta))
-    # FIXME how the fuck does mod work with floating point
-    assert 0
-    return 0.0,0.0
+    r = math.fmod(r + c*c, 2*c*c) - c*c + r*(1 - c*c)
+    return r*math.cos(theta),r*math.sin(theta)
 
 def fan(x: float, y: float, af: affine) -> point:
     _,_,c,_,_,f = af
     t = math.pi*c*c
     r = _r(x,y)
     theta = _theta(x,y)
-    # if (theta+f) mod t > t/2 then r*(cos(theta-t/2),sin(theta-t/2))
-    # if (theta+f) mod t <= t/2 then r*(cos(theta+t/2),sin(theta+t/2))
-    # FIXME how the fuck does mod work with floating point
-    assert 0
-    return 0.0,0.0
+    theta2 = theta + (-t/2 if math.fmod(theta+f,t) > t/2 else t/2)
+    return r*math.cos(theta2),r*math.sin(theta2)
 
 def blob(x: float, y: float, high: float, low: float, waves: float) -> point:
     p1 = high
@@ -149,7 +156,8 @@ def blob(x: float, y: float, high: float, low: float, waves: float) -> point:
     p3 = waves
     r = _r(x,y)
     theta = _theta(x,y)
-    r2 = p2 + ((p1-p2)/2)*(math.sin(p3*theta) + 1)
+    r2 = p2 + (p1-p2)*(0.5*math.sin(p3*theta) + 0.5)
+    # TODO FIXME this is what the paper had, flam3 code switches sin,cos
     return r*r2*math.cos(theta),r*r2*math.sin(theta)
 
 def pdj(x: float, y: float, a: float, b: float, c: float, d: float) -> point:
@@ -163,12 +171,12 @@ def fan2(x: float, y: float, px: float, py: float) -> point:
     p1 = math.pi*px*px
     p2 = py
     theta = _theta(x,y)
-    t = theta + p2 - p1*math.floor(2*theta*p2/p1)
+    # TODO FIXME which one is correct
+    #t = theta + p2 - p1*math.floor(2*theta*p2/p1) # from the paper
+    t = theta + p2 - p1*math.floor((theta + p2)/p1) # from flam3 C
     r = _r(x,y)
-    if t > p1/2:
-        return r*math.sin(theta-p1/2),r*math.cos(theta-p1/2)
-    else:
-        return r*math.sin(theta+p1/2),r*math.cos(theta+p1/2)
+    a = theta + (-p1/2 if t > p1/2 else p1/2)
+    return r*math.sin(a),r*math.cos(a)
 
 def rings2(x: float, y: float, val: float) -> point:
     p = val*val
@@ -183,7 +191,7 @@ def eyefish(x: float, y: float) -> point:
     return r*x,r*y
 
 def bubble(x: float, y: float) -> point:
-    r = 4/(_r(x,y)**2+4)
+    r = 1/(0.25*_r(x,y)**2+1)
     return r*x,r*y
 
 def cylinder(x: float, y: float) -> point:
@@ -192,8 +200,10 @@ def cylinder(x: float, y: float) -> point:
 def perspective(x: float, y: float, angle: float, dist: float) -> point:
     p1 = angle
     p2 = dist
+    #t = 1/(p2-y*math.sin(p1)) # intermediate calculation from flam3 code
+    # vsin = sin(p1), vfcos = p2*cos(p1)
     r = p2/(p2-y*math.sin(p1))
-    return r*x,r*y*math.cos(p1)
+    return r*x,r*math.cos(p1)*y
 
 def noise(x: float, y: float) -> point:
     psi1 = _psi()
@@ -206,7 +216,7 @@ def julian(x: float, y: float, power: float, dist: float) -> point:
     p3 = math.floor(abs(p1)*_psi())
     phi = _phi(x,y)
     t = (phi+2*math.pi*p3)/p1
-    r = math.pow(_r(x,y),p2/p1)
+    r = pow(_r2(x,y),p2/p1/2) # from flam3 code
     return r*math.cos(t),r*math.sin(t)
 
 def juliascope(x: float, y: float, power: float, dist: float) -> point:
@@ -214,8 +224,9 @@ def juliascope(x: float, y: float, power: float, dist: float) -> point:
     p2 = dist
     p3 = math.floor(abs(p1)*_psi())
     phi = _phi(x,y)
+    # TODO FIXME flam3 code uses (1 if p3 even else -1) instead of _lambda()
     t = (_lambda()*phi+2*math.pi*p3)/p1
-    r = math.pow(_r(x,y),p2/p1)
+    r = math.pow(_r2(x,y),p2/p1/2)
     return r*math.cos(t),r*math.sin(t)
 
 def blur(x: float, y: float) -> point:
@@ -229,15 +240,14 @@ def gaussian(x: float, y: float) -> point:
     psi5 = _psi()
     return r*math.cos(2*math.pi*psi5),r*math.cos(2*math.pi*psi5)
 
-def radialblur(x: float, y: float, angle: float) -> point:
-    p1 = angle*math.pi/2
-    # t1 = v_36 * (psi1 + psi2 + psi3 + psi4 - 2)
-    # t2 = phi + t1*sin(p1)
-    # t3 = t1*cos(p1) - 1
-    # (1/v_36) * (r*cos(t2)+t3*x,r*sin(t2)+t3*y)
-    # FIXME what the fuck is v_36
-    assert 0
-    return 0.0,0.0
+def radialblur(x: float, y: float, spin: float, zoom: float) -> point:
+    # TODO FIXME flam3 source and paper differ
+    rnd = _psi() + _psi() + _psi() + _psi() - 2
+    r = _r(x,y)
+    a = _phi(x,y) + spin*rnd # spin = sin(p1) (in paper, p1 = angle*pi/2)
+    z = zoom*rnd - 1 # zoom = cos(p1) (in paper)
+    # in paper, both are also multiplied by 1/v_36 (what is this?)
+    return r*math.cos(a)+z*x,r*math.sin(a)+z*y
 
 # why does this not depend on x,y
 def pie(x: float, y: float, slices: float, rotation: float, thickness: float) -> point:
@@ -250,15 +260,16 @@ def pie(x: float, y: float, slices: float, rotation: float, thickness: float) ->
     return psi3*math.cos(t2),psi3*math.sin(t2)
 
 def ngon(x: float, y: float, power: float, sides: float, corners: float, circle: float) -> point:
+    # TODO FIXME paper and flam3 source differ
     p1 = power
     p2 = 2*math.pi/sides
     p3 = corners
     p4 = circle
     phi = _phi(x,y)
     t3 = phi - p2*math.floor(phi/p2)
-    t4 = t3 if t3 > p2/2 else t3-p2
-    r = _r(x,y)
-    k = (p3*(1/math.cos(t4) - 1) + p4)/math.pow(r,p1)
+    #t4 = t3 if t3 > p2/2 else t3-p2 # from paper
+    t4 = t3-p2 if t3 > p2/2 else t3 # from flam3 source
+    k = (p3*(1/math.cos(t4) - 1) + p4)/math.pow(_r(x,y),p1/2)
     return k*x,k*y
 
 def curl(x: float, y: float, c1: float, c2: float) -> point:
@@ -270,16 +281,15 @@ def curl(x: float, y: float, c1: float, c2: float) -> point:
     return r*(x*t1+y*t2),r*(y*t1-x*t2)
 
 def rectangles(x: float, y: float, px: float, py: float) -> point:
+    # TODO FIXME flam3 source checks for division by 0
     p1 = px
     p2 = py
     return (2*math.floor(x/p1)+1)*p1-x,(2*math.floor(y/p2)+1)*p2-y
 
 def arch(x: float, y: float) -> point:
-    psi = _psi()
-    # sin(psi*pi*v_41),sin^2(psi*pi*v_41)/cos(psi*pi*v_41)
-    # FIXME what the fuck is v_41
-    assert 0
-    return 0.0,0.0
+    # paper has v_41 variable not present in flam3 source
+    a = _psi() * math.pi
+    return math.sin(a),math.sin(a)**2/math.cos(a)
 
 def tangent(x: float, y: float) -> point:
     return math.sin(x)/math.cos(y),math.tan(y)
@@ -288,34 +298,27 @@ def square(x: float, y: float) -> point:
     return _psi()-0.5,_psi()-0.5
 
 def rays(x: float, y: float) -> point:
-    r2 = _r(x,y)
-    # r = v_44 * tan(psi*pi*v_44) / r2
-    # r*cos(x),r*sin(y)
-    # FIXME what the fuck is v_44
-    assert 0
-    return 0.0,0.0
+    # paper has v_44 variable not present in flam3 source
+    a = _psi()*math.pi
+    t = math.tan(a)/_r2(x,y)
+    return t*math.cos(x),t*math.sin(x)
 
 def blade(x: float, y: float) -> point:
-    psi = _psi()
-    r = _r(x,y)
-    # x*(cos(psi*r*v_45)+sin(psi*r*v_45)),x*(cos(psi*r*v_45)-sin(psi*r*v_45))
-    # FIXME what the fuck is v_45
-    assert 0
-    return 0.0,0.0
+    # paper has v_45 variable not present in flam3 source
+    r = _r(x,y)*_psi()
+    return x*(math.cos(r)+math.sin(r)),x*(math.cos(r)-math.sin(r))
 
 def secant(x: float, y: float) -> point:
-    r = _r(x,y)
-    # x,1/(v_46*cos(v_46*r))
-    # FIXME what the fuck is v_46
-    assert 0
-    return 0.0,0.0
+    # TODO FIXME flam3 source differs from paper
+    cr = math.cos(_r(x,y))
+    return x, 1/cr+1 if cr < 0 else 1/cr-1
 
 def twintrian(x: float, y: float) -> point:
-    # t = log10(sin(psi*r*v_47)**2) + cos(psi*r*v_47)
-    # x*(t,t-pi*sin(psi*r*v_47))
-    # FIXME what the fuck is v_47
-    assert 0
-    return 0.0,0.0
+    r = _r(x,y)*_psi()
+    d = math.log10(math.sin(r)**2)+math.cos(r)
+    if abs(d)>1e10: # bad value check from flam3 source
+        d = -30
+    return x*d,x*(d-math.sin(r)*math.pi)
 
 def cross(x: float, y: float) -> point:
     r = math.sqrt(1/(x*x-y*y)**2)
