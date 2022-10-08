@@ -2,6 +2,7 @@
 # note for efficietly in C
 # - use sincos to compute sin and cos
 # - cache values that get reused
+# - multiply by 1/pi instead of dividing
 
 # TODO FIXME avoid division by 0
 
