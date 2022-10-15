@@ -3,7 +3,9 @@
 import math
 import random
 
-from .types import AffineParams, Point, _eps
+AffineParams = tuple[float,float,float,float,float,float] # a,b,c,d,e,f
+Point = tuple[float,float] # x,y
+_eps = 1e-10 # value defined in the flam3 source for avoiding division by zero
 
 # helper functions
 #
