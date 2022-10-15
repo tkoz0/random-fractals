@@ -7,6 +7,14 @@ AffineParams = tuple[float,float,float,float,float,float] # a,b,c,d,e,f
 Point = tuple[float,float] # x,y
 _eps = 1e-10 # value defined in the flam3 source for avoiding division by zero
 
+# in flam3 source, affine parameters
+# xform->c[0][0] = a
+# xform->c[0][1] = d
+# xform->c[1][0] = b
+# xform->c[1][1] = e
+# xform->c[2][0] = c
+# xform->c[2][1] = f
+
 # helper functions
 #
 # r = radius
@@ -17,24 +25,31 @@ _eps = 1e-10 # value defined in the flam3 source for avoiding division by zero
 # lambda = 1 or -1
 
 def _r2(x: float, y: float) -> float:
+    ''' squared 2-norm '''
     return x*x+y*y
 
 def _r(x: float, y: float) -> float:
+    ''' 2-norm '''
     return math.sqrt(_r2(x,y))
 
 def _theta(x: float, y: float) -> float:
+    ''' atan2(x,y) '''
     return math.atan2(x,y)
 
 def _phi(x: float, y: float) -> float:
+    ''' atan2(y,x) '''
     return math.atan2(y,x)
 
 def _psi():
+    ''' random in [0,1) '''
     return random.random()
 
 def _omega() -> float:
+    ''' 0 or pi '''
     return random.choice([math.pi,0.0])
 
 def _lambda() -> float:
+    ''' 1 or -1 '''
     return random.choice([1.0,-1.0])
 
 # base variation class
@@ -151,7 +166,7 @@ class VarJulia(Variation): # 13
         t = _theta(x,y)
         sr = math.sqrt(_r(x,y))
         o = _omega()
-        return sr*math.cos(t/2.0+o),sr*math.sin(t/2+o)
+        return sr*math.cos(t/2.0+o),sr*math.sin(t/2.0+o)
 
 class VarBent(Variation): # 14
     def __init__(self):
@@ -204,3 +219,14 @@ class VarCosine(Variation): # 20
     def calc(self, x: float, y: float) -> Point:
         a = math.pi*x
         return math.cos(a)*math.cosh(y),-math.sin(a)*math.sinh(y)
+
+class VarRings(Variation): # 21
+    def __init__(self, af: AffineParams):
+        self.af = af
+    def calc(self, x: float, y: float) -> Point:
+        a,b,c,d,e,f = self.af
+        dx = c*c+_eps
+        r = _r(x,y)
+        z = math.fmod(r+dx,2*dx)-dx+r*(1.0-dx)
+        t = _theta(x,y)
+        return z*math.cos(t),z*math.sin(t)
