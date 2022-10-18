@@ -3,6 +3,7 @@ Implementation of java.util.Random
 Tested to match exactly except for nextGaussian() which is approximate
 */
 
+#define _GNU_SOURCE
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -81,7 +82,7 @@ int32_t jrand_next_int_mod(jrand_t *j, int32_t b)
 {
     int32_t r = _jrand_next(j,31);
     int32_t m = b - 1;
-    if (b & m == 0) // b is a power of 2
+    if ((b & m) == 0) // b is a power of 2
         return (b * r) >> 31;
     int32_t u = r;
     r = u % b;
@@ -139,7 +140,12 @@ double jrand_next_gaussian(jrand_t *j)
         }
         m = sqrt(-2.0 * log(s) / s);
         j->has_g = true;
+        // GCC warns x and y may be uninitialized
+        // this never will occur so ignore the warnings
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
         j->next_g = y * m;
         return x * m;
+#pragma GCC diagnostic pop
     }
 }
