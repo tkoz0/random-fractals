@@ -20,8 +20,6 @@ _emach64 = 2**-52
 _eps = 1e-10 # value defined in the flam3 source for avoiding division by zero
 _emach = _emach64 # python float is 64 bit
 
-# TODO add color blending mode in addition to color index in palette
-
 class XForm:
     # weight = probability of choosing (must normalize)
     # color_index = index in palette (scaled from 0.0 to 1.0)
@@ -101,9 +99,25 @@ class Flame:
         self.palette = palette
 
 def biunit_rand(s = 1.0) -> Point:
+    ''' return random point in [-s,s] x [-s,s] '''
     x = s*(random.random()*2 - 1)
     y = s*(random.random()*2 - 1)
     return x,y
+
+def apply_affine(x: float, y: float, af: AffineParams) -> Point:
+    ''' return point with affine transformation applied '''
+    a,b,c,d,e,f = af
+    return a*x+b*y+c,d*x+e*y+f
+
+def apply_variations(tx: float, ty: float, vars: list[tuple[float,Variation]]) \
+        -> Point:
+    ''' compute the variation sum given the pre affine transformed point '''
+    vx,vy = 0.0,0.0
+    for w,var in vars:
+        rx,ry = var.calc(tx,ty)
+        vx += w*rx
+        vy += w*ry
+    return vx,vy
 
 # notes
 # - color update:
@@ -111,26 +125,17 @@ def biunit_rand(s = 1.0) -> Point:
 #   - blends index in the palette
 
 def apply_xform_basic(x: float, y: float, xf: XForm) -> Point:
-    # pre affine transform
-    a,b,c,d,e,f = xf.pre_affine
-    tx = a*x + b*y + c
-    ty = d*x + e*y + f
-    # sum variations
-    vx,vy = 0.0,0.0
-    for w,var in xf.variations:
-        rx,ry = var.calc(tx,ty)
-        vx += w*rx
-        vy += w*ry
-    # post affine transform
-    a,b,c,d,e,f = xf.post_affine
-    ox = a*vx + b*vy + c
-    oy = d*vx + e*vy + f
+    ''' apply xform to a point ignoring color information '''
+    tx,ty = apply_affine(x,y,xf.pre_affine)
+    vx,vy = apply_variations(tx,ty,xf.variations)
+    ox,oy = apply_affine(vx,vy,xf.post_affine)
     #speed = xf.color_speed
     return ox,oy#,xf.color_index*speed+(1.0-speed)*c
 
 SETTLE_ITERS = 20
 
 def render_basic(flame: Flame) -> HistogramBasic:
+    ''' render histogram information only (pixel count) '''
     R,C = flame.size_x,flame.size_y
     xlo,xhi = flame.xmin,flame.xmax
     ylo,yhi = flame.ymin,flame.ymax
