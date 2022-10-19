@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "types.h"
 
 // machine epsilon

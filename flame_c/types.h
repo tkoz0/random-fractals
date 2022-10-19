@@ -42,9 +42,6 @@ typedef struct { uint8_t r, g, b; } rgb_t;
 typedef struct { uint8_t r, g, b, a; } rgba_t;
 typedef struct { num_t x, y; } point_t;
 
-// frequency accumulator histogram (for grayscale only, no color)
-typedef uint32_t** histogram_basic;
-
 // iteration state variables
 typedef struct
 {
@@ -69,9 +66,10 @@ var_params_t;
 typedef struct
 {
     num_t weight; // probability to select (normalized)
-    var_func_t *vars; // null terminated array of pointers to variations
-    num_t *varw; // weights for variations
-    //uint32_t *precalc_flags; // TODO what to precompute for efficiency
+    var_func_t *vars;
+    num_t *varw;
+    uint32_t *var_len; // number of variations
+    //uint32_t *pc_flags; // TODO what to precompute for efficiency
     jrand_t rng; // random number generator state
     affine_params pre_affine;
     affine_params post_affine;
@@ -85,7 +83,7 @@ typedef struct
     char *name;
     uint32_t size_x, size_y;
     num_t xmin, xmax, ymin, ymax;
-    xform_t *xforms; // null terminated array of xforms
-    uint64_t samples; // number of samples to compute
+    xform_t *xforms;
+    uint32_t xforms_len;
 }
 flame_t;
