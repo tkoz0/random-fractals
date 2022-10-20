@@ -97,3 +97,23 @@ void var5_polar(iter_state_t *state, num_t weight)
     state->vx += weight * a * _1_PI;
     state->vy += weight * (r - 1.0);
 }
+
+const char *VAR_NAME[NUM_VARIATIONS] =
+{
+    "linear",
+    "sinusoidal",
+    "spherical",
+    "swirl",
+    "horseshoe",
+    "polar"
+};
+
+const var_func_t VAR_FUNCS[NUM_VARIATIONS] =
+{
+    var0_linear,
+    var1_sinusoidal,
+    var2_spherical,
+    var3_swirl,
+    var4_horseshoe,
+    var5_polar
+};

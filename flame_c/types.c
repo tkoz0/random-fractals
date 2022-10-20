@@ -34,3 +34,5 @@ const num_t _1_PHI =   0.6180339887498948;
 
 // small number for avoiding division by zero
 const num_t _EPS = 1e-10;
+
+const affine_params null_affine = { 1.0, 0.0, 0.0, 0.0, 1.0, 0.0 };

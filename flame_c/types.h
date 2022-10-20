@@ -34,9 +34,11 @@ static inline bool bad_value(num_t n)
 typedef struct
 {
     // (x,y) -> (a*x+b*y+c,d*x+e*y+f)
-    float a, b, c, d, e, f;
+    num_t a, b, c, d, e, f;
 }
 affine_params;
+
+extern const affine_params null_affine;
 
 typedef struct { uint8_t r, g, b; } rgb_t;
 typedef struct { uint8_t r, g, b, a; } rgba_t;
@@ -68,19 +70,18 @@ typedef struct
     num_t weight; // probability to select (normalized)
     var_func_t *vars;
     num_t *varw;
-    uint32_t *var_len; // number of variations
+    uint32_t var_len; // number of variations
     //uint32_t *pc_flags; // TODO what to precompute for efficiency
-    jrand_t rng; // random number generator state
     affine_params pre_affine;
     affine_params post_affine;
-    var_params_t *params;
+    //var_params_t *params;
 }
 xform_t;
 
 // flame
 typedef struct
 {
-    char *name;
+    const char *name;
     uint32_t size_x, size_y;
     num_t xmin, xmax, ymin, ymax;
     xform_t *xforms;
