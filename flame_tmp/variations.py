@@ -224,7 +224,7 @@ class VarRings(Variation): # 21
     def __init__(self, af: AffineParams):
         self.af = af
     def calc(self, x: float, y: float) -> Point:
-        a,b,c,d,e,f = self.af
+        _,_,c,_,_,_ = self.af
         dx = c*c+_eps
         r = _r(x,y)
         z = math.fmod(r+dx,2*dx)-dx+r*(1.0-dx)

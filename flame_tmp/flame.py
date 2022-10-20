@@ -153,8 +153,13 @@ def render_basic(flame: Flame) -> HistogramBasic:
     xmin,ymin = math.inf,math.inf
     xmax,ymax = -math.inf,-math.inf
     CW[-1] = 1.0 # ensure ends with 1.0 for proper random selection
+    _dist = [0]*len(CW)
+    print(f'CW = {CW}')
     for i in range(SETTLE_ITERS+flame.samples):
-        xf = flame.xforms[len([z for z in CW if z < random.random()])]
+        rand_num = random.random()
+        xf_i = len([z for z in CW if z < rand_num])
+        xf = flame.xforms[xf_i]
+        _dist[xf_i] += 1
         x,y = apply_xform_basic(x,y,xf)
         if i >= SETTLE_ITERS:
             xmin = min(xmin,x)
@@ -165,5 +170,6 @@ def render_basic(flame: Flame) -> HistogramBasic:
             c = math.floor((x-xlo)/xstep)
             if 0 <= r < R and 0 <= c < C:
                 buf[r][c] += 1
+    print(f'distribution = {_dist}')
     return buf
 
