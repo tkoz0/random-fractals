@@ -1,2 +1,2 @@
 #!/bin/bash
-gcc -g -Wall -O3 *.c -lm
+gcc -g -Wall -O3 -std=gnu99 *.c -lm
