@@ -76,6 +76,7 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand, uint64_t 
         _apply_xform_basic(&state,flame->xforms+_pick_xform(cw,jrand));
 #if 1
     uint32_t *_dist = calloc(flame->xforms_len,sizeof(*_dist));
+    num_t xmin=INFINITY,xmax=-INFINITY,ymin=INFINITY,ymax=-INFINITY;
 #endif
     while (samples--)
     {
@@ -94,6 +95,12 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand, uint64_t 
             }
             _biunit_rand(1.0,jrand,&(state.x),&(state.y));
         }
+#if 1
+        if (state.x < xmin) xmin = state.x;
+        if (state.x > xmax) xmax = state.x;
+        if (state.y < ymin) ymin = state.y;
+        if (state.y > ymax) ymax = state.y;
+#endif
         if (state.x < flame->xmin || state.x >= flame->xmax
             || state.y < flame->ymin || state.y >= flame->ymax)
             continue;
@@ -106,6 +113,8 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand, uint64_t 
     for (uint32_t i = 0; i < flame->xforms_len; ++i)
         fprintf(stderr," %u",_dist[i]);
     fprintf(stderr,"\n");
+    fprintf(stderr,"x extremes %f %f\n",xmin,xmax);
+    fprintf(stderr,"y extremes %f %f\n",ymin,ymax);
     free(_dist);
 #endif
     free(cw);

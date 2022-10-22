@@ -18,9 +18,9 @@ int main(int argc, char **argv)
 {
     flame_t f;
     f.name = "test";
-    f.size_x = f.size_y = 512;
-    f.xmin = f.ymin = -1.0;
-    f.xmax = f.ymax = 1.0;
+    f.size_x = f.size_y = 1024;
+    f.xmin = f.ymin = -4.0;
+    f.xmax = f.ymax = 4.0;
     f.xforms_len = 3;
     f.xforms = calloc(3,sizeof(xform_t));
     num_t vweight[2] = {1.0,-0.5};
@@ -30,29 +30,21 @@ int main(int argc, char **argv)
     f.xforms[0].vars = vfuncs;
     f.xforms[0].varw = vweight;
     f.xforms[0].var_len = 2;
-    f.xforms[0].pre_affine = null_affine;
-    f.xforms[0].pre_affine.a = 0.5;
-    f.xforms[0].pre_affine.e = 0.5;
+    f.xforms[0].pre_affine = (affine_params){0.5,0.0,0.0,0.0,0.5,0.0};
     f.xforms[0].post_affine = null_affine;
     // 0,1
     f.xforms[1].weight = 1.0;
     f.xforms[1].vars = vfuncs;
     f.xforms[1].varw = vweight;
     f.xforms[1].var_len = 1;
-    f.xforms[1].pre_affine = null_affine;
-    f.xforms[1].pre_affine.a = 0.5;
-    f.xforms[1].pre_affine.e = 0.5;
-    f.xforms[1].pre_affine.f = 0.5;
+    f.xforms[1].pre_affine = (affine_params){0.5,0.0,0.0,0.0,0.5,0.5};
     f.xforms[1].post_affine = null_affine;
     // 1,0
     f.xforms[2].weight = 1.0;
     f.xforms[2].vars = vfuncs;
     f.xforms[2].varw = vweight;
     f.xforms[2].var_len = 1;
-    f.xforms[2].pre_affine = null_affine;
-    f.xforms[2].pre_affine.a = 0.5;
-    f.xforms[2].pre_affine.e = 0.5;
-    f.xforms[2].pre_affine.c = 0.5;
+    f.xforms[2].pre_affine = (affine_params){0.5,0.0,0.5,0.0,0.5,0.0};
     f.xforms[2].post_affine = null_affine;
     // random
     jrand_t j;
