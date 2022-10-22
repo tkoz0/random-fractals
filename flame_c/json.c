@@ -350,11 +350,163 @@ json_value *json_load(const char *data)
     return ret;
 }
 
+void _dump_chars(char *buf, size_t *i, char ch, size_t count)
+{
+    while (count--)
+    {
+        if (buf)
+            buf[*i] = ch;
+        ++(*i);
+    }
+}
+
+void _dump_spaces(char *buf, size_t *i, size_t count)
+{
+    _dump_chars(buf,i,' ',count);
+}
+
+void _dump_string(char *buf, size_t *i, const char *s)
+{
+    while (*s)
+    {
+        if (buf)
+            buf[*i] = *s;
+        ++(*i);
+        ++s;
+    }
+}
+
+void _json_dump_str(char *buf, size_t *i, char *value)
+{
+     _dump_string(buf,i,"\"");
+    char *ptr = value;
+    while (*ptr)
+    {
+        switch (*ptr)
+        {
+        case '"':  _dump_string(buf,i,"\\\""); break;
+        case '\\': _dump_string(buf,i,"\\\\"); break;
+        case '\b': _dump_string(buf,i,"\\b");  break;
+        case '\f': _dump_string(buf,i,"\\f");  break;
+        case '\n': _dump_string(buf,i,"\\n");  break;
+        case '\r': _dump_string(buf,i,"\\r");  break;
+        case '\t': _dump_string(buf,i,"\\t");  break;
+        default: _dump_chars(buf,i,*ptr,1); break;
+        }
+        ++ptr;
+    }
+    _dump_string(buf,i,"\"");
+}
+
+// writes it to buf if buf is non null
+void _json_dump_helper(json_value *data, uint32_t depth,
+                        uint32_t indent, char *buf, size_t *i)
+{
+    switch (data->type)
+    {
+    case JSON_STRING:
+        _json_dump_str(buf,i,data->value.as_str);
+        break;
+    case JSON_NUMBER_INT:
+        char ibuf[20];
+        int ibuflen = sprintf(ibuf,"%ld",data->value.as_int);
+        if (buf)
+            memcpy(buf+*i,ibuf,ibuflen);
+        *i += ibuflen;
+        break;
+    case JSON_NUMBER_FLOAT:
+        char fbuf[24];
+        _double_to_string(data->value.as_float,fbuf);
+        if (buf)
+            memcpy(buf+*i,fbuf,strlen(fbuf));
+        *i += strlen(fbuf);
+        break;
+    case JSON_OBJECT:
+        if (!data->value.as_object)
+        {
+            _dump_string(buf,i,"{}");
+            break;
+        }
+        json_object *optr = data->value.as_object;
+        _dump_string(buf,i,"{");
+        if (indent)
+            _dump_string(buf,i,"\n");
+        _dump_spaces(buf,i,depth+indent);
+        _json_dump_str(buf,i,optr->key);
+        _dump_string(buf,i,":");
+        if (indent)
+            _dump_spaces(buf,i,1);
+        _json_dump_helper(optr->value,depth+indent,indent,buf,i);
+        while (optr->next)
+        {
+            optr = optr->next;
+            _dump_string(buf,i,",");
+            if (indent)
+                _dump_string(buf,i,"\n");
+            _dump_spaces(buf,i,depth+indent);
+            _json_dump_str(buf,i,optr->key);
+            _dump_string(buf,i,":");
+            if (indent)
+                _dump_spaces(buf,i,1);
+            _json_dump_helper(optr->value,depth+indent,indent,buf,i);
+        }
+        if (indent)
+            _dump_string(buf,i,"\n");
+        _dump_spaces(buf,i,depth);
+        _dump_string(buf,i,"}");
+        break;
+    case JSON_ARRAY:
+        if (!data->value.as_array)
+        {
+            _dump_string(buf,i,"[]");
+            break;
+        }
+        json_array *aptr = data->value.as_array;
+        _dump_string(buf,i,"[");
+        if (indent)
+            _dump_string(buf,i,"\n");
+        _dump_spaces(buf,i,depth+indent);
+        _json_dump_helper(aptr->value,depth+indent,indent,buf,i);
+        while (aptr->next)
+        {
+            aptr = aptr->next;
+            _dump_string(buf,i,",");
+            if (indent)
+                _dump_string(buf,i,"\n");
+            _dump_spaces(buf,i,depth+indent);
+            _json_dump_helper(aptr->value,depth+indent,indent,buf,i);
+        }
+        if (indent)
+            _dump_string(buf,i,"\n");
+        _dump_spaces(buf,i,depth);
+        _dump_string(buf,i,"]");
+        break;
+    case JSON_BOOL:
+        const char *v = data->value.as_bool ? "true" : "false";
+        if (buf)
+            memcpy(buf+*i,v,strlen(v));
+        *i += strlen(v);
+        break;
+    case JSON_NULL:
+        if (buf)
+            memcpy(buf+*i,"null",4);
+        *i += 4;
+        break;
+    default:
+        assert(0);
+    }
+}
+
 // if indent is 0, outputs as a compact string (newly allocated)
 char *json_dump(json_value *data, uint32_t indent)
 {
-    assert(0); // not implemented, probably not needed for this project
-    return 0;
+    size_t len = 0;
+    _json_dump_helper(data,0,indent,NULL,&len);
+    char *ret = malloc(len+1);
+    ret[len] = '\0';
+    size_t i = 0;
+    _json_dump_helper(data,0,indent,ret,&i);
+    return ret;
 }
 
 // free all the dynamically allocated memory associated with a JSON value
@@ -457,9 +609,12 @@ char *read_file(const char *fname)
 int main(int argc, char **argv)
 {
     char *data = read_file("a.json");
-    json_value *v = json_load(argv[1]);
+    json_value *v = json_load(data);
     free(data);
-    printf("type = %u\n",v->type);
+    data = json_dump(v,0);
+    printf("%s\n",data);
+    free(data);
+    //printf("type = %u\n",v->type);
     json_destroy(v);
     //_jnum_t num;
     //int ret = _read_number(argv[1],&i,&num);
