@@ -64,6 +64,10 @@ char *json_dump(json_value *data, uint32_t indent);
 
 void json_destroy(json_value *json);
 
-json_value *json_array_get(json_array *array, uint32_t index);
+size_t json_array_len(json_array *array);
+
+size_t json_object_len(json_object *object);
+
+json_value *json_array_get(json_array *array, size_t index);
 
 json_value *json_object_get(json_object *object, const char *key);

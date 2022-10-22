@@ -388,8 +388,30 @@ void json_destroy(json_value *json)
     free(json);
 }
 
+size_t json_array_len(json_array *array)
+{
+    size_t ret = 0;
+    while (array)
+    {
+        array = array->next;
+        ++ret;
+    }
+    return ret;
+}
+
+size_t json_object_len(json_object *object)
+{
+    size_t ret = 0;
+    while (object)
+    {
+        object = object->next;
+        ++ret;
+    }
+    return ret;
+}
+
 // index an array, return NULL if out of bounds
-json_value *json_array_get(json_array *array, uint32_t index)
+json_value *json_array_get(json_array *array, size_t index)
 {
     if (!array)
         return NULL;
