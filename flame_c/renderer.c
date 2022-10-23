@@ -55,7 +55,7 @@ static inline uint32_t _pick_xform(num_t *cw, jrand_t *jrand)
 
 // histogram length == flame->size_x * flame->size_y
 // histogram indexed by (flame->size_x * y_pos) + x_pos
-void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand, uint64_t samples)
+void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
 {
     uint32_t bad_value_count = 0;
     num_t xmul = (float) flame->size_x / (flame->xmax - flame->xmin);
@@ -78,6 +78,7 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand, uint64_t 
     uint32_t *_dist = calloc(flame->xforms_len,sizeof(*_dist));
     num_t xmin=INFINITY,xmax=-INFINITY,ymin=INFINITY,ymax=-INFINITY;
 #endif
+    uint64_t samples = flame->samples;
     while (samples--)
     {
         uint32_t xf_i = _pick_xform(cw,jrand);
@@ -109,12 +110,12 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand, uint64_t 
         ++histogram[(flame->size_x*y)+x];
     }
 #if 1
-    fprintf(stderr,"distribution");
+    fprintf(stderr,"  distribution");
     for (uint32_t i = 0; i < flame->xforms_len; ++i)
         fprintf(stderr," %u",_dist[i]);
     fprintf(stderr,"\n");
-    fprintf(stderr,"x extremes %f %f\n",xmin,xmax);
-    fprintf(stderr,"y extremes %f %f\n",ymin,ymax);
+    fprintf(stderr,"  x extremes %f %f\n",xmin,xmax);
+    fprintf(stderr,"  y extremes %f %f\n",ymin,ymax);
     free(_dist);
 #endif
     free(cw);

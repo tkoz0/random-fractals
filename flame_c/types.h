@@ -81,7 +81,8 @@ xform_t;
 typedef struct
 {
     char *name;
-    uint32_t size_x, size_y;
+    size_t size_x, size_y;
+    uint64_t samples;
     num_t xmin, xmax, ymin, ymax;
     xform_t *xforms;
     uint32_t xforms_len;

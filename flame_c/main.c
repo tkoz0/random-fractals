@@ -5,91 +5,117 @@ Flame fractal renderer.
 Usage: ./a.out [-r <seed>]
 */
 
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "jrand.h"
+#include "parser.h"
 #include "renderer.h"
 #include "types.h"
 #include "variations.h"
 
-int main(int argc, char **argv)
+// read entire file contents into newly allocated null terminated string
+char *read_file(const char *fname)
 {
-    flame_t f;
-    f.name = "test";
-    f.size_x = f.size_y = 1024;
-    f.xmin = f.ymin = -4.0;
-    f.xmax = f.ymax = 4.0;
-    f.xforms_len = 3;
-    f.xforms = calloc(3,sizeof(xform_t));
-    num_t vweight[2] = {1.0,-0.5};
-    var_func_t vfuncs[2] = {&var0_linear,&var2_spherical};
-    // 0,0
-    f.xforms[0].weight = 1.0;
-    f.xforms[0].vars = vfuncs;
-    f.xforms[0].varw = vweight;
-    f.xforms[0].var_len = 2;
-    f.xforms[0].pre_affine = (affine_params){0.5,0.0,0.0,0.0,0.5,0.0};
-    f.xforms[0].post_affine = null_affine;
-    // 0,1
-    f.xforms[1].weight = 1.0;
-    f.xforms[1].vars = vfuncs;
-    f.xforms[1].varw = vweight;
-    f.xforms[1].var_len = 1;
-    f.xforms[1].pre_affine = (affine_params){0.5,0.0,0.0,0.0,0.5,0.5};
-    f.xforms[1].post_affine = null_affine;
-    // 1,0
-    f.xforms[2].weight = 1.0;
-    f.xforms[2].vars = vfuncs;
-    f.xforms[2].varw = vweight;
-    f.xforms[2].var_len = 1;
-    f.xforms[2].pre_affine = (affine_params){0.5,0.0,0.5,0.0,0.5,0.0};
-    f.xforms[2].post_affine = null_affine;
-    // random
+    FILE *f = fopen(fname,"r");
+    fseek(f,0,SEEK_END);
+    size_t length = ftell(f);
+    fseek(f,0,SEEK_SET);
+    char *buf = malloc(length+1);
+    assert(buf);
+    buf[length] = '\0';
+    size_t read_length = fread(buf,1,length,f);
+    assert(read_length == length);
+    fclose(f);
+    return buf;
+}
+
+void render_flame(flame_t *flame, uint32_t *buf, uint8_t *img)
+{
+    fprintf(stderr,"rendering flame: %s\n",flame->name);
     jrand_t j;
     jrand_init(&j);
-    uint32_t *buf = calloc(f.size_x*f.size_y,sizeof(*buf));
-    // render
-    fprintf(stderr,"render start\n");
-    render_basic(&f,buf,&j,1uL<<24);
-    fprintf(stderr,"render done\n");
-    uint64_t s = 0;
-    uint32_t m = 0;
-    for (uint64_t i = 0; i < f.size_x*f.size_y; ++i)
+    fprintf(stderr,"  starting...\n");
+    memset(buf,0,flame->size_x*flame->size_y*sizeof(*buf));
+    render_basic(flame,buf,&j);
+    fprintf(stderr,"  done\n");
+    uint64_t sample_count = 0;
+    uint32_t max_sample = 0;
+    for (uint64_t i = 0; i < flame->size_x*flame->size_y; ++i)
     {
-        s += buf[i];
-        if (buf[i] > m)
-            m = buf[i];
+        sample_count += buf[i];
+        if (buf[i] > max_sample)
+            max_sample = buf[i];
     }
-    fprintf(stderr,"samples = %lu\n",s);
-    fprintf(stderr,"max value = %u\n",m);
-    fprintf(stderr,"converting to image\n");
-    num_t *log_scale = calloc(f.size_x*f.size_y,sizeof(*log_scale));
-    num_t lm = 0.0;
-    for (uint64_t i = 0; i < f.size_x*f.size_y; ++i)
+    fprintf(stderr,"  samples in rectangle: %lu\n",sample_count);
+    fprintf(stderr,"  max sample value = %u\n",max_sample);
+    num_t log_max = 0.0;
+    for (uint64_t i = 0; i < flame->size_x*flame->size_y; ++i)
     {
-        log_scale[i] = log((double)(buf[i]+1));
-        if (log_scale[i] > lm)
-            lm = log_scale[i];
+        num_t log_val = log((num_t)(buf[i]+1.0));
+        if (log_val > log_max)
+            log_max = log_val;
     }
-    fprintf(stderr,"log scale up to %f\n",lm);
-    // output image
-    printf("P5\n%u %u\n255\n",f.size_x,f.size_y);
-    uint8_t *img = calloc(f.size_x*f.size_y,sizeof(*img));
+    fprintf(stderr,"  log max for scaling = %f\n",log_max);
     uint8_t *img_ptr = img;
-    for (uint64_t r = f.size_y; r--;)
-        for (uint64_t c = 0; c < f.size_x; ++c)
+    for (size_t r = flame->size_y; r--;)
+        for (size_t c = 0; c < flame->size_x; ++c)
         {
-            num_t ls = log_scale[r*f.size_x+c];
-            *(img_ptr++) = (uint8_t)(ls*255.5/lm);
+            num_t log_scale = log((num_t)(buf[r*flame->size_x+c]+1.0));
+            *(img_ptr++) = (uint8_t)(log_scale*255.5/log_max);
         }
-    fwrite(img,sizeof(*img),f.size_x*f.size_y,stdout);
-    fflush(stdout);
-    fprintf(stderr,"done\n");
-    free(f.xforms);
+    fprintf(stderr,"  wrote image buffer\n");
+}
+
+int main(int argc, char **argv)
+{
+    assert(argc > 1);
+    char *filedata = read_file(argv[1]);
+    assert(filedata);
+    json_value *jsondata = json_load(filedata);
+    assert(jsondata);
+    free(filedata);
+    flame_list *flames = flames_from_json(jsondata);
+    json_destroy(jsondata);
+    assert(flames);
+    // buffer
+    size_t size_x_max = 0;
+    size_t size_y_max = 0;
+    flame_list *flame_ptr = flames;
+    while (flame_ptr) // find max size for buffer
+    {
+        if (flame_ptr->value.size_x > size_x_max)
+            size_x_max = flame_ptr->value.size_x;
+        if (flame_ptr->value.size_y > size_y_max)
+            size_y_max = flame_ptr->value.size_y;
+        flame_ptr = flame_ptr->next;
+    }
+    uint32_t *buf = malloc(size_x_max*size_y_max*sizeof(*buf));
+    uint8_t *img = malloc(size_x_max*size_y_max*sizeof(*img));
+    // render flames
+    flame_ptr = flames;
+    while (flame_ptr)
+    {
+        flame_t *flame = &flame_ptr->value;
+        render_flame(flame,buf,img);
+        size_t name_len = strlen(flame->name);
+        char *fname = malloc(name_len+5);
+        memcpy(fname,flame->name,name_len);
+        memcpy(fname+name_len,".pgm\0",5);
+        FILE *out_file = fopen(fname,"wb");
+        assert(out_file);
+        fprintf(out_file,"P5\n%lu %lu\n255\n",flame->size_x,flame->size_y);
+        fwrite(img,flame->size_x*flame->size_y,sizeof(*img),out_file);
+        fclose(out_file);
+        fprintf(stderr,"wrote %s\n",fname);
+        free(fname);
+        flame_ptr = flame_ptr->next;
+    }
     free(buf);
-    free(log_scale);
     free(img);
+    destroy_flame_list(flames);
     return 0;
 }

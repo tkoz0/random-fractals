@@ -1,0 +1,129 @@
+[
+    {
+        "name": "01_sierpinski_triangle",
+        "size_x": 512,
+        "size_y": 512,
+        "samples": 1048576,
+        "xmin": 0.0,
+        "xmax": 1.0,
+        "ymin": 0.0,
+        "ymax": 1.0,
+        "xforms": [
+            {
+                "weight": 1.0,
+                "vars": [
+                    {"name":"linear","weight":1.0}
+                ],
+                "pre_affine":  [0.5,0.0,0.0, 0.0,0.5,0.0],
+                "post_affine": [1.0,0.0,0.0, 0.0,1.0,0.0],
+                "comment": "point (0,0)"
+            },
+            {
+                "weight": 1.0,
+                "vars": [
+                    {"name":"linear","weight":1.0}
+                ],
+                "pre_affine":  [0.5,0.0,0.0, 0.0,0.5,0.5],
+                "post_affine": [1.0,0.0,0.0, 0.0,1.0,0.0],
+                "comment": "point (0,1)"
+            },
+            {
+                "weight": 1.0,
+                "vars": [
+                    {"name":"linear","weight":1.0}
+                ],
+                "pre_affine":  [0.5,0.0,0.5, 0.0,0.5,0.0],
+                "post_affine": [1.0,0.0,0.0, 0.0,1.0,0.0],
+                "comment": "point (1,0)"
+            }
+        ]
+    },
+    {
+        "name": "02_sierpinski_triangle_modified",
+        "size_x": 512,
+        "size_y": 512,
+        "samples": 1048576,
+        "xmin": -2.0,
+        "xmax": 2.0,
+        "ymin": -2.0,
+        "ymax": 2.0,
+        "xforms": [
+            {
+                "weight": 1.0,
+                "vars": [
+                    {"name":"linear","weight":1.0},
+                    {"name":"spherical","weight":-0.5}
+                ],
+                "pre_affine":  [0.5,0.0,0.0, 0.0,0.5,0.0],
+                "post_affine": [1.0,0.0,0.0, 0.0,1.0,0.0],
+                "comment": "point (0,0)"
+            },
+            {
+                "weight": 1.0,
+                "vars": [
+                    {"name":"linear","weight":1.0}
+                ],
+                "pre_affine":  [0.5,0.0,0.0, 0.0,0.5,0.5],
+                "post_affine": [1.0,0.0,0.0, 0.0,1.0,0.0],
+                "comment": "point (0,1)"
+            },
+            {
+                "weight": 1.0,
+                "vars": [
+                    {"name":"linear","weight":1.0}
+                ],
+                "pre_affine":  [0.5,0.0,0.5, 0.0,0.5,0.0],
+                "post_affine": [1.0,0.0,0.0, 0.0,1.0,0.0],
+                "comment": "point (1,0)"
+            }
+        ]
+    },
+    {
+        "name": "03_modified_square",
+        "size_x": 512,
+        "size_y": 512,
+        "samples": 1048576,
+        "xmin": -1.0,
+        "xmax": 1.0,
+        "ymin": -1.0,
+        "ymax": 1.0,
+        "xforms": [
+            {
+                "weight": 1.0,
+                "vars": [
+                    {"name":"linear","weight":1.0}
+                ],
+                "pre_affine":  [0.5,0.0,0.0, 0.0,0.5,0.0],
+                "post_affine": [1.0,0.0,0.0, 0.0,1.0,0.0],
+                "comment": "point (0,0)"
+            },
+            {
+                "weight": 1.0,
+                "vars": [
+                    {"name":"linear","weight":1.0}
+                ],
+                "pre_affine":  [0.5,0.0,0.0, 0.0,0.5,0.5],
+                "post_affine": [1.0,0.0,0.0, 0.0,1.0,0.0],
+                "comment": "point (0,1)"
+            },
+            {
+                "weight": 1.0,
+                "vars": [
+                    {"name":"linear","weight":1.0}
+                ],
+                "pre_affine":  [0.5,0.0,0.5, 0.0,0.5,0.0],
+                "post_affine": [1.0,0.0,0.0, 0.0,1.0,0.0],
+                "comment": "point (1,0)"
+            },
+            {
+                "weight": 1.0,
+                "vars": [
+                    {"name":"linear","weight":1.0}
+                ],
+                "pre_affine":  [-0.5,0.0,-0.5, 0.0,-0.5,-0.5],
+                "post_affine": [1.0,0.0,0.0, 0.0,1.0,0.0],
+                "comment": "point (1,1)"
+            }
+        ]
+    }
+]
