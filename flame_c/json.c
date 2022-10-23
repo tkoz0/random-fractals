@@ -11,7 +11,7 @@
 // uses inefficient linked lists to implement arrays and objects
 
 // wrapper for fprintf(stderr,..)
-void _write_error(const char *f, ...)
+static void _write_error(const char *f, ...)
 {
     va_list args;
     va_start(args,f);
@@ -23,7 +23,7 @@ void _write_error(const char *f, ...)
 // TODO get this to work like python3 float.__repr__
 // for now just %.16e (max 23 chars + null), it preserves exact value
 // handle NaN, and Infinity separately
-void _double_to_string(double num, char *buf)
+static void _double_to_string(double num, char *buf)
 {
     if (num != num) // NaN
         sprintf(buf,"NaN");
@@ -36,7 +36,7 @@ void _double_to_string(double num, char *buf)
 }
 
 // increment i to next non whitespace
-void _skip_whitespace(const char *data, size_t *i)
+static void _skip_whitespace(const char *data, size_t *i)
 {
     for (;;)
     {
@@ -58,7 +58,7 @@ void _skip_whitespace(const char *data, size_t *i)
 // returns the string length, -1 if error
 // dest == NULL for counting length only, otherwise it writes string result
 // TODO does not support \u escape
-size_t _process_string(const char *data, size_t *i, char *dest)
+static size_t _process_string(const char *data, size_t *i, char *dest)
 {
     size_t ret = 0;
     for (;;)
@@ -104,7 +104,7 @@ size_t _process_string(const char *data, size_t *i, char *dest)
 }
 
 // return newly allocated string, NULL for error
-char *_read_string(const char *data, size_t *i)
+static char *_read_string(const char *data, size_t *i)
 {
     assert(data[*i] == '"');
     ++(*i);
@@ -128,7 +128,7 @@ typedef union { json_int as_int; json_float as_float; } _jnum_t;
 
 // return 0 for integer, 1 for floating point, 2 for error
 // format from json.org -?(0|[1-9]\d*)(.\d+)?([Ee][+\-]?\d+)?
-int _read_number(const char *data, size_t *i, _jnum_t *ret)
+static int _read_number(const char *data, size_t *i, _jnum_t *ret)
 {
     if (data[*i] == 'N') // NaN
     {
@@ -190,9 +190,9 @@ int _read_number(const char *data, size_t *i, _jnum_t *ret)
     return is_float;
 }
 
-json_value *_read_value(const char *data, size_t *i);
+static json_value *_read_value(const char *data, size_t *i);
 
-json_object *_read_object(const char *data, size_t *i)
+static json_object *_read_object(const char *data, size_t *i)
 {
     assert(data[*i] == '{');
     ++(*i);
@@ -236,7 +236,7 @@ json_object *_read_object(const char *data, size_t *i)
     return head;
 }
 
-json_array *_read_array(const char *data, size_t *i)
+static json_array *_read_array(const char *data, size_t *i)
 {
     assert(data[*i] == '[');
     ++(*i);
@@ -273,7 +273,7 @@ json_array *_read_array(const char *data, size_t *i)
     return head;
 }
 
-json_value *_read_value(const char *data, size_t *i)
+static json_value *_read_value(const char *data, size_t *i)
 {
     _skip_whitespace(data,i);
     json_value *ret = malloc(sizeof(json_value));
@@ -350,7 +350,7 @@ json_value *json_load(const char *data)
     return ret;
 }
 
-void _dump_chars(char *buf, size_t *i, char ch, size_t count)
+static void _dump_chars(char *buf, size_t *i, char ch, size_t count)
 {
     while (count--)
     {
@@ -360,12 +360,12 @@ void _dump_chars(char *buf, size_t *i, char ch, size_t count)
     }
 }
 
-void _dump_spaces(char *buf, size_t *i, size_t count)
+static void _dump_spaces(char *buf, size_t *i, size_t count)
 {
     _dump_chars(buf,i,' ',count);
 }
 
-void _dump_string(char *buf, size_t *i, const char *s)
+static void _dump_string(char *buf, size_t *i, const char *s)
 {
     while (*s)
     {
@@ -376,7 +376,7 @@ void _dump_string(char *buf, size_t *i, const char *s)
     }
 }
 
-void _json_dump_str(char *buf, size_t *i, char *value)
+static void _json_dump_str(char *buf, size_t *i, char *value)
 {
      _dump_string(buf,i,"\"");
     char *ptr = value;
@@ -399,7 +399,7 @@ void _json_dump_str(char *buf, size_t *i, char *value)
 }
 
 // writes it to buf if buf is non null
-void _json_dump_helper(json_value *data, uint32_t depth,
+static void _json_dump_helper(json_value *data, uint32_t depth,
                         uint32_t indent, char *buf, size_t *i)
 {
     switch (data->type)
@@ -503,6 +503,7 @@ char *json_dump(json_value *data, uint32_t indent)
     size_t len = 0;
     _json_dump_helper(data,0,indent,NULL,&len);
     char *ret = malloc(len+1);
+    assert(ret);
     ret[len] = '\0';
     size_t i = 0;
     _json_dump_helper(data,0,indent,ret,&i);

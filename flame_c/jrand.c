@@ -17,19 +17,19 @@ Tested to match exactly except for nextGaussian() which is approximate
 #define JRAND_MASK ((1L << JRAND_STATE_SIZE) - 1)
 #define JRAND_SEED_UNIQUIFIER_INIT 8682522807148012L
 
-int64_t _initial_scramble(int64_t s)
+static int64_t _initial_scramble(int64_t s)
 {
     return (s ^ JRAND_MULTIPLIER) & JRAND_MASK;
 }
 
-int64_t _system_time()
+static int64_t _system_time()
 {
     return time(NULL) + clock();
 }
 
-int64_t _SEED_UNIQUIFIER = 8682522807148012L;
+static int64_t _SEED_UNIQUIFIER = 8682522807148012L;
 
-int64_t _seed_uniquifier()
+static int64_t _seed_uniquifier()
 {
     return (_SEED_UNIQUIFIER = _SEED_UNIQUIFIER * 181783497276652981L);
 }
@@ -46,7 +46,7 @@ void jrand_init(jrand_t *j)
 }
 
 // extract some bits, 0 < b <= 32
-int32_t _jrand_next(jrand_t *j, size_t b)
+static int32_t _jrand_next(jrand_t *j, size_t b)
 {
     j->state = (j->state * JRAND_MULTIPLIER + JRAND_ADDEND) & JRAND_MASK;
     return j->state >> (JRAND_STATE_SIZE - b);

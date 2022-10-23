@@ -60,7 +60,6 @@ typedef void (*var_func_t)(iter_state_t*,num_t);
 // parameters for variations
 typedef struct
 {
-    ;
 }
 var_params_t;
 
@@ -81,7 +80,7 @@ xform_t;
 // flame
 typedef struct
 {
-    const char *name;
+    char *name;
     uint32_t size_x, size_y;
     num_t xmin, xmax, ymin, ymax;
     xform_t *xforms;

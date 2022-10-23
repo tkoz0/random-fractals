@@ -32,7 +32,7 @@ static inline void _apply_xform_basic(iter_state_t *state, xform_t *xf)
     _apply_affine(&(xf->post_affine),&(state->x),&(state->y),state->vx,state->vy);
 }
 
-void _normalize_xform_weights(xform_t *xforms, uint32_t len)
+static void _normalize_xform_weights(xform_t *xforms, uint32_t len)
 {
     assert(len > 0);
     num_t wsum = 0.0;

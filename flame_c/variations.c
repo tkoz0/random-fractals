@@ -32,8 +32,8 @@ static inline num_t _phi(num_t x, num_t y)
 }
 
 // tables for random variables
-const num_t _OMEGA_TABLE[2] = { 0, 3.141592653589793 };
-const num_t _LAMBDA_TABLE[2] = { 1.0, -1.0 };
+static const num_t _OMEGA_TABLE[2] = { 0, 3.141592653589793 };
+static const num_t _LAMBDA_TABLE[2] = { 1.0, -1.0 };
 
 // random variables
 
