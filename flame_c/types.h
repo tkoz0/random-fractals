@@ -85,6 +85,6 @@ typedef struct
     uint64_t samples;
     num_t xmin, xmax, ymin, ymax;
     xform_t *xforms;
-    uint32_t xforms_len;
+    size_t xforms_len;
 }
 flame_t;

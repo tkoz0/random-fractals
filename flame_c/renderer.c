@@ -8,6 +8,22 @@
 
 #define SETTLE_ITERS 20
 
+void optimize_flame(flame_t *flame)
+{
+    // insertion sort xforms in order of decreasing weight
+    for (size_t i = 1; i < flame->xforms_len; ++i)
+    {
+        size_t j = i;
+        while (j && flame->xforms[j-1].weight > flame->xforms[j].weight)
+        {
+            xform_t tmp = flame->xforms[j-1];
+            flame->xforms[j-1] = flame->xforms[j];
+            flame->xforms[j] = tmp;
+            --j;
+        }
+    }
+}
+
 static inline void _biunit_rand(num_t s, jrand_t *j, num_t *x, num_t *y)
 {
     *x = s*(jrand_next_float(j)*2.0 - 1.0);
@@ -44,6 +60,7 @@ static void _normalize_xform_weights(xform_t *xforms, uint32_t len)
 }
 
 // randomly select flame based on cumulative weights
+// TODO support doing this with binary search for better efficiency
 static inline uint32_t _pick_xform(num_t *cw, jrand_t *jrand)
 {
     uint32_t ret = 0;
