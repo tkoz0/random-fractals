@@ -130,7 +130,7 @@ flame_list *flames_from_json(json_value *data)
             json_object *jxf = jxfe->value.as_object;
             xform_t *xf = tail->value.xforms+i;
             _set_num_from_key(jxf,"weight",&xf->weight,1.0);
-            json_value *jvarsv = json_object_get(jxf,"vars");
+            json_value *jvarsv = json_object_get(jxf,"variations");
             assert(jvarsv);
             assert(jvarsv->type == JSON_ARRAY);
             json_array *jvars = jvarsv->value.as_array;

@@ -11,7 +11,7 @@
         "xforms": [
             {
                 "weight": 1.0,
-                "vars": [
+                "variations": [
                     {"name":"linear","weight":1.0}
                 ],
                 "pre_affine":  [0.5,0.0,0.0, 0.0,0.5,0.0],
@@ -20,7 +20,7 @@
             },
             {
                 "weight": 1.0,
-                "vars": [
+                "variations": [
                     {"name":"linear","weight":1.0}
                 ],
                 "pre_affine":  [0.5,0.0,0.0, 0.0,0.5,0.5],
@@ -29,7 +29,7 @@
             },
             {
                 "weight": 1.0,
-                "vars": [
+                "variations": [
                     {"name":"linear","weight":1.0}
                 ],
                 "pre_affine":  [0.5,0.0,0.5, 0.0,0.5,0.0],
@@ -50,7 +50,7 @@
         "xforms": [
             {
                 "weight": 1.0,
-                "vars": [
+                "variations": [
                     {"name":"linear","weight":1.0},
                     {"name":"spherical","weight":-0.5}
                 ],
@@ -60,7 +60,7 @@
             },
             {
                 "weight": 1.0,
-                "vars": [
+                "variations": [
                     {"name":"linear","weight":1.0}
                 ],
                 "pre_affine":  [0.5,0.0,0.0, 0.0,0.5,0.5],
@@ -69,7 +69,7 @@
             },
             {
                 "weight": 1.0,
-                "vars": [
+                "variations": [
                     {"name":"linear","weight":1.0}
                 ],
                 "pre_affine":  [0.5,0.0,0.5, 0.0,0.5,0.0],
@@ -90,7 +90,7 @@
         "xforms": [
             {
                 "weight": 1.0,
-                "vars": [
+                "variations": [
                     {"name":"linear","weight":1.0}
                 ],
                 "pre_affine":  [0.5,0.0,0.0, 0.0,0.5,0.0],
@@ -99,7 +99,7 @@
             },
             {
                 "weight": 1.0,
-                "vars": [
+                "variations": [
                     {"name":"linear","weight":1.0}
                 ],
                 "pre_affine":  [0.5,0.0,0.0, 0.0,0.5,0.5],
@@ -108,7 +108,7 @@
             },
             {
                 "weight": 1.0,
-                "vars": [
+                "variations": [
                     {"name":"linear","weight":1.0}
                 ],
                 "pre_affine":  [0.5,0.0,0.5, 0.0,0.5,0.0],
@@ -117,7 +117,7 @@
             },
             {
                 "weight": 1.0,
-                "vars": [
+                "variations": [
                     {"name":"linear","weight":1.0}
                 ],
                 "pre_affine":  [-0.5,0.0,-0.5, 0.0,-0.5,-0.5],
