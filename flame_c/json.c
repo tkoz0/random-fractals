@@ -121,6 +121,7 @@ static char *_read_string(const char *data, size_t *i)
 
 typedef union { json_int as_int; json_float as_float; } _jnum_t;
 
+// some macros for char type
 #define _IS_SIGN(c) ((c) == '-' || (c) == '+')
 #define _IS_DIGIT(c) ('0' <= (c) && (c) <= '9')
 #define _IS_NONZERO_DIGIT(c) ('1' <= (c) && (c) <= '9')
@@ -128,6 +129,7 @@ typedef union { json_int as_int; json_float as_float; } _jnum_t;
 
 // return 0 for integer, 1 for floating point, 2 for error
 // format from json.org -?(0|[1-9]\d*)(.\d+)?([Ee][+\-]?\d+)?
+// TODO this does not properly check validity of number formats
 static int _read_number(const char *data, size_t *i, _jnum_t *ret)
 {
     if (data[*i] == 'N') // NaN
@@ -591,6 +593,7 @@ json_value *json_object_get(json_object *object, const char *key)
     return NULL;
 }
 
+// some code that was used for testing
 #if 0
 char *read_file(const char *fname)
 {

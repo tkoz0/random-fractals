@@ -10,6 +10,7 @@ Usage: ./a.out [-r <seed>]
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "jrand.h"
 #include "parser.h"
@@ -33,6 +34,7 @@ char *read_file(const char *fname)
     return buf;
 }
 
+// given a flame, write the histogram (buf) and grayscale image (img)
 void render_flame(flame_t *flame, uint32_t *buf, uint8_t *img)
 {
     fprintf(stderr,"rendering flame: %s\n",flame->name);
@@ -40,8 +42,12 @@ void render_flame(flame_t *flame, uint32_t *buf, uint8_t *img)
     jrand_init(&j);
     fprintf(stderr,"  starting...\n");
     memset(buf,0,flame->size_x*flame->size_y*sizeof(*buf));
+    clock_t r_start = clock();
     render_basic(flame,buf,&j);
-    fprintf(stderr,"  done\n");
+    clock_t r_end = clock();
+    float r_secs = (r_end-r_start)/(float)CLOCKS_PER_SEC;
+    fprintf(stderr,"  done (%f sec)\n",r_secs);
+    fprintf(stderr,"  %f samples/sec\n",flame->samples/r_secs);
     uint64_t sample_count = 0;
     uint32_t max_sample = 0;
     for (uint64_t i = 0; i < flame->size_x*flame->size_y; ++i)
@@ -50,7 +56,8 @@ void render_flame(flame_t *flame, uint32_t *buf, uint8_t *img)
         if (buf[i] > max_sample)
             max_sample = buf[i];
     }
-    fprintf(stderr,"  samples in rectangle: %lu\n",sample_count);
+    float percent = ((float) sample_count / (float) flame->samples) * 100.0;
+    fprintf(stderr,"  samples in rectangle: %lu (%f%%)\n",sample_count,percent);
     fprintf(stderr,"  max sample value = %u\n",max_sample);
     num_t log_max = 0.0;
     for (uint64_t i = 0; i < flame->size_x*flame->size_y; ++i)

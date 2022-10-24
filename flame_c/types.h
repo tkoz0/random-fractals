@@ -28,9 +28,10 @@ extern const num_t _PHI, _1_PHI;
 // TODO make this faster by checking only for +-inf and NaN
 static inline bool bad_value(num_t n)
 {
-    return (n != n) || (n > 1e10) || (n < -1e10);
+    return (n > 1e10) || (n < -1e10) || (n != n);
 }
 
+// parameters for affine transformation
 typedef struct
 {
     // (x,y) -> (a*x+b*y+c,d*x+e*y+f)
@@ -38,11 +39,20 @@ typedef struct
 }
 affine_params;
 
+// affine identity transformation (x,y) -> (x,y)
 extern const affine_params null_affine;
 
+// some helper types, currently unused
 typedef struct { uint8_t r, g, b; } rgb_t;
 typedef struct { uint8_t r, g, b, a; } rgba_t;
 typedef struct { num_t x, y; } point_t;
+
+// parameters for variations
+// TODO add to this for more variations
+typedef struct
+{
+}
+var_params_t;
 
 // iteration state variables
 typedef struct
@@ -51,29 +61,24 @@ typedef struct
     num_t tx, ty; // pre affine transform applied
     num_t vx, vy; // variation sum
     // TODO precalc variables
+    // TODO variation parameters
 }
 iter_state_t;
 
 // variation function type
 typedef void (*var_func_t)(iter_state_t*,num_t);
 
-// parameters for variations
-typedef struct
-{
-}
-var_params_t;
-
 // xform
 typedef struct
 {
-    num_t weight; // probability to select (normalized)
-    var_func_t *vars;
-    num_t *varw;
+    num_t weight; // probability to select (will be normalized)
+    var_func_t *vars; // function pointers to variations
+    num_t *varw; // variation wewights
     uint32_t var_len; // number of variations
     //uint32_t *pc_flags; // TODO what to precompute for efficiency
     affine_params pre_affine;
     affine_params post_affine;
-    //var_params_t *params;
+    var_params_t params;
 }
 xform_t;
 
@@ -81,9 +86,9 @@ xform_t;
 typedef struct
 {
     char *name;
-    size_t size_x, size_y;
-    uint64_t samples;
-    num_t xmin, xmax, ymin, ymax;
+    size_t size_x, size_y; // dimensions for histogram
+    uint64_t samples; // number of iterations
+    num_t xmin, xmax, ymin, ymax; // bounds for rectangle to render
     xform_t *xforms;
     size_t xforms_len;
 }

@@ -6,15 +6,20 @@
 #include "jrand.h"
 #include "types.h"
 
-#define SETTLE_ITERS 20
+// iterations from the start that are not plotted for the IFS to "settle"
+#define SETTLE_ITERS 50
 
+// write extra stats to stderr
+#define STDERR_RENDER_INFO
+
+// adjustments that may help increase performance
 void optimize_flame(flame_t *flame)
 {
     // insertion sort xforms in order of decreasing weight
     for (size_t i = 1; i < flame->xforms_len; ++i)
     {
         size_t j = i;
-        while (j && flame->xforms[j-1].weight > flame->xforms[j].weight)
+        while (j && flame->xforms[j-1].weight < flame->xforms[j].weight)
         {
             xform_t tmp = flame->xforms[j-1];
             flame->xforms[j-1] = flame->xforms[j];
@@ -24,18 +29,21 @@ void optimize_flame(flame_t *flame)
     }
 }
 
+// random point in [-s,s]x[-s,s]
 static inline void _biunit_rand(num_t s, jrand_t *j, num_t *x, num_t *y)
 {
     *x = s*(jrand_next_float(j)*2.0 - 1.0);
     *y = s*(jrand_next_float(j)*2.0 - 1.0);
 }
 
+// (x,y) -> (*xn,*yn)
 static inline void _apply_affine(affine_params *af, num_t *xn, num_t *yn, num_t x, num_t y)
 {
     *xn = af->a*x + af->b*y + af->c;
     *yn = af->d*x + af->e*y + af->f;
 }
 
+// transforms the state with a chosen xform
 static inline void _apply_xform_basic(iter_state_t *state, xform_t *xf)
 {
     // transform point
@@ -48,6 +56,7 @@ static inline void _apply_xform_basic(iter_state_t *state, xform_t *xf)
     _apply_affine(&(xf->post_affine),&(state->x),&(state->y),state->vx,state->vy);
 }
 
+// normalize weights to sum to 1 for probability selection algorithm
 static void _normalize_xform_weights(xform_t *xforms, uint32_t len)
 {
     assert(len > 0);
@@ -74,7 +83,7 @@ static inline uint32_t _pick_xform(num_t *cw, jrand_t *jrand)
 // histogram indexed by (flame->size_x * y_pos) + x_pos
 void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
 {
-    uint32_t bad_value_count = 0;
+    uint64_t bad_value_count = 0;
     num_t xmul = (float) flame->size_x / (flame->xmax - flame->xmin);
     num_t ymul = (float) flame->size_y / (flame->ymax - flame->ymin);
     _normalize_xform_weights(flame->xforms,flame->xforms_len);
@@ -91,7 +100,7 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
     _biunit_rand(1.0,jrand,&(state.x),&(state.y));
     for (uint32_t i = 0; i < SETTLE_ITERS; ++i)
         _apply_xform_basic(&state,flame->xforms+_pick_xform(cw,jrand));
-#if 1
+#ifdef STDERR_RENDER_INFO
     uint32_t *_dist = calloc(flame->xforms_len,sizeof(*_dist));
     num_t xmin=INFINITY,xmax=-INFINITY,ymin=INFINITY,ymax=-INFINITY;
 #endif
@@ -100,20 +109,26 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
     {
         uint32_t xf_i = _pick_xform(cw,jrand);
         _apply_xform_basic(&state,flame->xforms+xf_i);
-#if 1
+#ifdef STDERR_RENDER_INFO
         ++_dist[xf_i];
 #endif
         if (bad_value(state.x) || bad_value(state.y))
         {
-            if (bad_value_count < 10)
+            ++bad_value_count;
+            if (bad_value_count <= 10)
             {
-                ++bad_value_count;
-                fprintf(stderr,"renderer_basic(): bad_value (x,y) = (%f,%f)",
+                fprintf(stderr,"renderer_basic(): bad_value (x,y) = (%f,%f)\n",
                     state.x,state.y);
+                if (bad_value_count == 10)
+                    fprintf(stderr,"renderer_basic(): not showing more "
+                        "bad value errors\n");
             }
             _biunit_rand(1.0,jrand,&(state.x),&(state.y));
+            // get the new point to settle before adding to histogram again
+            for (uint32_t i = 0; i < SETTLE_ITERS; ++i)
+                _apply_xform_basic(&state,flame->xforms+_pick_xform(cw,jrand));
         }
-#if 1
+#ifdef STDERR_RENDER_INFO
         if (state.x < xmin) xmin = state.x;
         if (state.x > xmax) xmax = state.x;
         if (state.y < ymin) ymin = state.y;
@@ -126,13 +141,14 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
         uint32_t y = (state.y - flame->ymin) * ymul;
         ++histogram[(flame->size_x*y)+x];
     }
-#if 1
-    fprintf(stderr,"  distribution");
+#ifdef STDERR_RENDER_INFO
+    fprintf(stderr,"  xform distribution");
     for (uint32_t i = 0; i < flame->xforms_len; ++i)
         fprintf(stderr," %u",_dist[i]);
     fprintf(stderr,"\n");
     fprintf(stderr,"  x extremes %f %f\n",xmin,xmax);
     fprintf(stderr,"  y extremes %f %f\n",ymin,ymax);
+    fprintf(stderr,"  bad values: %lu\n",bad_value_count);
     free(_dist);
 #endif
     free(cw);

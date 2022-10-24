@@ -17,6 +17,7 @@ static void _write_error(const char *f, ...)
     va_end(args);
 }
 
+// returns a newly allocated copy of the string
 static char *_copy_string(const char *s)
 {
     char *ret = malloc(strlen(s)+1);
@@ -24,6 +25,7 @@ static char *_copy_string(const char *s)
     return ret;
 }
 
+// expect integer to get value from, using a default if key does not exist
 static void _set_u64_from_key(json_object *j, const char *k, uint64_t *dest,
                                 uint64_t def)
 {
@@ -37,6 +39,7 @@ static void _set_u64_from_key(json_object *j, const char *k, uint64_t *dest,
     }
 }
 
+// expect num_t to get value from, using default if key does not exist
 static void _set_num_from_key(json_object *j, const char *k, num_t *dest,
                                 num_t def)
 {
@@ -50,6 +53,7 @@ static void _set_num_from_key(json_object *j, const char *k, num_t *dest,
     }
 }
 
+// expect num_t at array index, fail if array is not long enough
 static void _set_num_from_index(json_array *j, size_t i, num_t *dest)
 {
     json_value *tmp = json_array_get(j,i);
@@ -58,6 +62,7 @@ static void _set_num_from_index(json_array *j, size_t i, num_t *dest)
     *dest = (num_t) tmp->value.as_float;
 }
 
+// defaults and some sanity checks
 #define SIZE_X_DEFAULT 256
 #define SIZE_Y_DEFAULT 256
 #define SIZE_X_MAX 100000
@@ -73,8 +78,10 @@ flame_list *flames_from_json(json_value *data)
     flame_list *tail = NULL;
     assert(data->type == JSON_ARRAY);
     json_array *jptr = data->value.as_array;
-    while (jptr)
+    size_t num_flames = 0;
+    while (jptr) // flame loop
     {
+        ++num_flames;
         if (!head)
         {
             head = malloc(sizeof(*head));
@@ -182,6 +189,7 @@ flame_list *flames_from_json(json_value *data)
         }
         jptr = jptr->next;
     }
+    _write_error("parsed %lu flames\n",num_flames);
     return head;
 }
 
