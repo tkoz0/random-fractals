@@ -82,6 +82,7 @@ typedef struct
     num_t x, y; // current point
     num_t tx, ty; // pre affine transform applied
     num_t vx, vy; // variation sum
+    jrand_t rand; // RNG state
     // precalculated variables (TODO enable)
     // num_t pc_theta, pc_phi;
     // num_t pc_sint, pc_cost;

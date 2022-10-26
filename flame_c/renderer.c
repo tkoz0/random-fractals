@@ -97,6 +97,7 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
     }
     cw[flame->xforms_len-1] = 1.0; // to correct for rounding error
     iter_state_t state;
+    state.rand = *jrand;
     _biunit_rand(1.0,jrand,&(state.x),&(state.y));
     for (uint32_t i = 0; i < SETTLE_ITERS; ++i)
         _apply_xform_basic(&state,flame->xforms+_pick_xform(cw,jrand));
