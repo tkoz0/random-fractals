@@ -86,7 +86,7 @@ void var3_swirl(iter_state_t *state, num_t weight)
 void var4_horseshoe(iter_state_t *state, num_t weight)
 {
     num_t r = weight / (_r(state->tx,state->ty) + _EPS);
-    state->vx += (state->tx-state->ty)*(state->tx+state->ty) * r;
+    state->vx += (state->tx - state->ty) * (state->tx + state->ty) * r;
     state->vy += 2.0*state->tx*state->ty * r;
 }
 
@@ -111,11 +111,32 @@ void var7_heart(iter_state_t *state, num_t weight)
 {
     num_t r = _r(state->tx,state->ty);
     num_t a = r * _theta(state->tx,state->ty);
-    r *= weight;
     num_t sin_a,cos_a;
     sincosf(a,&sin_a,&cos_a);
+    r *= weight;
     state->vx += r * sin_a;
     state->vy += -r * cos_a;
+}
+
+void var8_disc(iter_state_t *state, num_t weight)
+{
+    num_t a = _theta(state->tx,state->ty) * _1_PI * weight;
+    num_t r = _PI * _r(state->tx,state->ty);
+    num_t sr,cr;
+    sincosf(r,&sr,&cr);
+    state->vx += sr * a;
+    state->vy += cr * a;
+}
+
+void var9_spiral(iter_state_t *state, num_t weight)
+{
+    num_t a = _theta(state->tx,state->ty);
+    num_t r = _r(state->tx,state->ty) + _EPS;
+    num_t sr,cr;
+    sincosf(r,&sr,&cr);
+    num_t r1 = weight/r;
+    state->vx += r1 * (cos(a) + sr);
+    state->vy += r1 * (sin(a) - cr);
 }
 
 const var_info_t VARIATIONS[NUM_VARIATIONS] =
@@ -127,5 +148,7 @@ const var_info_t VARIATIONS[NUM_VARIATIONS] =
     {"horseshoe", &var4_horseshoe, 0},
     {"polar", &var5_polar, 0},
     {"handkerchief", &var6_handkerchief, 0},
-    {"heart", &var7_heart, 0}
+    {"heart", &var7_heart, 0},
+    {"disc", &var8_disc, 0},
+    {"spiral", &var9_spiral, 0}
 };
