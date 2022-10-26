@@ -8,21 +8,43 @@ Types
 
 #include "jrand.h"
 
-extern const float _EMACH32;
-extern const double _EMACH64;
-
 typedef float num_t;
-extern const num_t _EPS;
 
-extern const num_t _PI, _2PI;
-extern const num_t _1_PI, _2_PI;
-extern const num_t _PI_2, _PI_3, _PI_4, _PI_6, _PI_12;
+// machine epsilon
+#define _EMACH32 (1.0F / (float)(1  << 23)) // 1.1920928955078125e-07
+#define _EMACH64 (1.0 / (double)(1L << 52)) // 2.220446049250313e-16
 
-extern const num_t _E, _1_E, _LOG2;
+// pi based constants
+#define _PI    ((num_t) 3.141592653589793)
+#define _2PI   ((num_t) 6.283185307179586)
+#define _1_PI  ((num_t) 0.3183098861837907)
+#define _2_PI  ((num_t) 0.6366197723675814)
+#define _PI_2  ((num_t) 1.5707963267948966)
+#define _PI_3  ((num_t) 1.0471975511965976)
+#define _PI_4  ((num_t) 0.7853981633974483)
+#define _PI_6  ((num_t) 0.5235987755982988)
+#define _PI_12 ((num_t) 0.2617993877991494)
 
-extern const num_t _SQRT2, _SQRT3, _SQRT5;
-extern const num_t _1_SQRT2, _1_SQRT3, _1_SQRT5;
-extern const num_t _PHI, _1_PHI;
+// e based constants
+#define _E    ((num_t) 2.718281828459045)
+#define _1_E  ((num_t) 0.36787944117144233)
+#define _LOG2 ((num_t) 0.6931471805599453)
+
+// sqrt based constants
+#define _SQRT2   ((num_t) 1.4142135623730951)
+#define _SQRT3   ((num_t) 1.7320508075688772)
+#define _SQRT5   ((num_t) 2.23606797749979)
+#define _1_SQRT2 ((num_t) 0.7071067811865475)
+#define _1_SQRT3 ((num_t) 0.5773502691896258)
+#define _1_SQRT5 ((num_t) 0.4472135954999579)
+#define _PHI     ((num_t) 1.618033988749895)
+#define _1_PHI   ((num_t) 0.6180339887498948)
+
+// small number for avoiding division by zero
+#define _EPS ((num_t) 1e-10)
+
+// identity affine transformation (x,y) -> (x,y)
+#define NULL_AFFINE ((affine_params){1.0,0.0,0.0,0.0,1.0,0.0})
 
 // check for NaN and very large/small values
 // TODO make this faster by checking only for +-inf and NaN
@@ -60,8 +82,10 @@ typedef struct
     num_t x, y; // current point
     num_t tx, ty; // pre affine transform applied
     num_t vx, vy; // variation sum
-    // TODO precalc variables
-    // TODO variation parameters
+    // precalculated variables (TODO enable)
+    // num_t pc_theta, pc_phi;
+    // num_t pc_sint, pc_cost;
+    // num_t pc_r, pc_r2;
 }
 iter_state_t;
 
@@ -78,7 +102,8 @@ typedef struct
     //uint32_t *pc_flags; // TODO what to precompute for efficiency
     affine_params pre_affine;
     affine_params post_affine;
-    var_params_t params;
+    var_params_t var_params; // other variation parameters
+    uint32_t pc_flags; // which values to precalculate
 }
 xform_t;
 

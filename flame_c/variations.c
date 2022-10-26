@@ -8,7 +8,7 @@
 // squared 2-norm
 static inline num_t _r2(num_t x, num_t y)
 {
-    return x*x+y*y;
+    return x*x + y*y;
 }
 
 // 2-norm
@@ -98,22 +98,34 @@ void var5_polar(iter_state_t *state, num_t weight)
     state->vy += weight * (r - 1.0);
 }
 
-const char *VAR_NAME[NUM_VARIATIONS] =
+void var6_handkerchief(iter_state_t *state, num_t weight)
 {
-    "linear",
-    "sinusoidal",
-    "spherical",
-    "swirl",
-    "horseshoe",
-    "polar"
-};
+    num_t a = _theta(state->tx,state->ty);
+    num_t r = _r(state->tx,state->ty);
+    num_t rw = weight * r;
+    state->vx += rw * sin(a+r);
+    state->vy += rw * cos(a-r);
+}
 
-const var_func_t VAR_FUNCS[NUM_VARIATIONS] =
+void var7_heart(iter_state_t *state, num_t weight)
 {
-    var0_linear,
-    var1_sinusoidal,
-    var2_spherical,
-    var3_swirl,
-    var4_horseshoe,
-    var5_polar
+    num_t r = _r(state->tx,state->ty);
+    num_t a = r * _theta(state->tx,state->ty);
+    r *= weight;
+    num_t sin_a,cos_a;
+    sincosf(a,&sin_a,&cos_a);
+    state->vx += r * sin_a;
+    state->vy += -r * cos_a;
+}
+
+const var_info_t VARIATIONS[NUM_VARIATIONS] =
+{
+    {"linear", &var0_linear, 0},
+    {"sinusoidal", &var1_sinusoidal, 0},
+    {"spherical", &var2_spherical, 0},
+    {"swirl", &var3_swirl, 0},
+    {"horseshoe", &var4_horseshoe, 0},
+    {"polar", &var5_polar, 0},
+    {"handkerchief", &var6_handkerchief, 0},
+    {"heart", &var7_heart, 0}
 };

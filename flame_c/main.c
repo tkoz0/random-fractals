@@ -115,8 +115,13 @@ int main(int argc, char **argv)
         FILE *out_file = fopen(fname,"wb");
         assert(out_file);
         fprintf(out_file,"P5\n%lu %lu\n255\n",flame->size_x,flame->size_y);
-        fwrite(img,flame->size_x*flame->size_y,sizeof(*img),out_file);
+        fwrite(img,sizeof(*img),flame->size_x*flame->size_y,out_file);
         fclose(out_file);
+        fprintf(stderr,"wrote %s\n",fname);
+        memcpy(fname+name_len,".buf\0",5);
+        out_file = fopen(fname,"wb");
+        assert(out_file);
+        fwrite(buf,sizeof(*buf),flame->size_x*flame->size_y,out_file);
         fprintf(stderr,"wrote %s\n",fname);
         free(fname);
         flame_ptr = flame_ptr->next;

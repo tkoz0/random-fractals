@@ -146,6 +146,7 @@ flame_list *flames_from_json(json_value *data)
             //_write_error("    has %u vars\n",xf->var_len);
             xf->vars = malloc(sizeof(xf->vars[0])*xf->var_len);
             xf->varw = malloc(sizeof(xf->varw[0])*xf->var_len);
+            uint32_t pc_flags = 0;
             // variations loop
             for (size_t j = 0; j < xf->var_len; ++j, jvars = jvars->next)
             {
@@ -162,10 +163,15 @@ flame_list *flames_from_json(json_value *data)
                 //_write_error("      name %s\n",varname);
                 xf->vars[j] = NULL; // find the variation function
                 for (size_t k = 0; k < NUM_VARIATIONS; ++k)
-                    if (!strcmp(VAR_NAME[k],varname))
-                        xf->vars[j] = VAR_FUNCS[k];
+                    if (!strcmp(VARIATIONS[k].name,varname))
+                    {
+                        xf->vars[j] = VARIATIONS[k].func;
+                        pc_flags |= VARIATIONS[k].flags;
+                        break;
+                    }
                 assert(xf->vars[j]);
             }
+            xf->pc_flags = pc_flags;
             json_value *jafv = json_object_get(jxf,"pre_affine");
             assert(jafv);
             assert(jafv->type == JSON_ARRAY);
