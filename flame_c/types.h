@@ -100,7 +100,6 @@ typedef struct
     var_func_t *vars; // function pointers to variations
     num_t *varw; // variation wewights
     uint32_t var_len; // number of variations
-    //uint32_t *pc_flags; // TODO what to precompute for efficiency
     affine_params pre_affine;
     affine_params post_affine;
     var_params_t var_params; // other variation parameters
