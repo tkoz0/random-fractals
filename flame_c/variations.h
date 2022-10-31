@@ -6,8 +6,6 @@ Variations
 
 #include "types.h"
 
-#define NUM_VARIATIONS 10
-
 void var0_linear(iter_state_t *state, num_t weight);
 void var1_sinusoidal(iter_state_t *state, num_t weight);
 void var2_spherical(iter_state_t *state, num_t weight);
@@ -27,7 +25,7 @@ typedef struct
 }
 var_info_t;
 
-extern const var_info_t VARIATIONS[NUM_VARIATIONS+1];
+extern const var_info_t VARIATIONS[];
 
 // precalc flags
 #define PC_THETA (1 << 0)

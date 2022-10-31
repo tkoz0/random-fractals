@@ -162,7 +162,7 @@ flame_list *flames_from_json(json_value *data)
                 char *varname = jnamev->value.as_str;
                 //_write_error("      name %s\n",varname);
                 xf->vars[j] = NULL; // find the variation function
-                for (size_t k = 0; k < NUM_VARIATIONS; ++k)
+                for (size_t k = 0; VARIATIONS[k].name; ++k)
                     if (!strcmp(VARIATIONS[k].name,varname))
                     {
                         xf->vars[j] = VARIATIONS[k].func;

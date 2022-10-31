@@ -34,6 +34,48 @@ char *read_file(const char *fname)
     return buf;
 }
 
+static inline num_t _scale_linear(uint32_t n)
+{
+    return (num_t)n;
+}
+
+static inline num_t _scale_log(uint32_t n)
+{
+    return log((num_t)(n+1));
+}
+
+static inline num_t _scale_loglog(uint32_t n)
+{
+    return log(_scale_log(n)+1.0);
+}
+
+static inline num_t _scale_logpow(uint32_t n, num_t p)
+{
+    return pow(_scale_log(n),p);
+}
+
+static inline num_t _scale_pow(uint32_t n, num_t p)
+{
+    return pow(_scale_linear(n),p);
+}
+
+static inline num_t _scale_arctan(uint32_t n, num_t d)
+{
+    return atan((num_t)(n)/d);
+}
+
+static inline num_t _scaleinv_recippow(uint32_t n, num_t p)
+{
+    return 1.0/pow((num_t)(n+1),p);
+}
+
+static inline num_t _scaleinv_reciplog(uint32_t n)
+{
+    return 1.0/_scale_log(n);
+}
+
+#define SCALE(n) _scale_log(n)
+
 // given a flame, write the histogram (buf) and grayscale image (img)
 void render_flame(flame_t *flame, uint32_t *buf, uint8_t *img)
 {
@@ -62,7 +104,7 @@ void render_flame(flame_t *flame, uint32_t *buf, uint8_t *img)
     num_t log_max = 0.0;
     for (uint64_t i = 0; i < flame->size_x*flame->size_y; ++i)
     {
-        num_t log_val = log((num_t)(buf[i]+1.0));
+        num_t log_val = SCALE(buf[i]);
         if (log_val > log_max)
             log_max = log_val;
     }
@@ -71,7 +113,7 @@ void render_flame(flame_t *flame, uint32_t *buf, uint8_t *img)
     for (size_t r = flame->size_y; r--;)
         for (size_t c = 0; c < flame->size_x; ++c)
         {
-            num_t log_scale = log((num_t)(buf[r*flame->size_x+c]+1.0));
+            num_t log_scale = SCALE(buf[r*flame->size_x+c]);
             *(img_ptr++) = (uint8_t)(log_scale*255.5/log_max);
         }
     fprintf(stderr,"  wrote image buffer\n");

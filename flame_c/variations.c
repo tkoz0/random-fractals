@@ -139,7 +139,7 @@ void var9_spiral(iter_state_t *state, num_t weight)
     state->vy += r1 * (sin(a) - cr);
 }
 
-const var_info_t VARIATIONS[NUM_VARIATIONS+1] =
+const var_info_t VARIATIONS[] =
 {
     {"linear", &var0_linear, 0},
     {"sinusoidal", &var1_sinusoidal, 0},
@@ -151,5 +151,5 @@ const var_info_t VARIATIONS[NUM_VARIATIONS+1] =
     {"heart", &var7_heart, 0},
     {"disc", &var8_disc, 0},
     {"spiral", &var9_spiral, 0},
-    {0,0,0}
+    {NULL,NULL,0}
 };

@@ -76,19 +76,7 @@ typedef struct
 }
 var_params_t;
 
-// iteration state variables
-typedef struct
-{
-    num_t x, y; // current point
-    num_t tx, ty; // pre affine transform applied
-    num_t vx, vy; // variation sum
-    jrand_t rand; // RNG state
-    // precalculated variables (TODO enable)
-    // num_t pc_theta, pc_phi;
-    // num_t pc_sint, pc_cost;
-    // num_t pc_r, pc_r2;
-}
-iter_state_t;
+typedef struct iter_state_t iter_state_t; // forward declare
 
 // variation function type
 typedef void (*var_func_t)(iter_state_t*,num_t);
@@ -118,3 +106,17 @@ typedef struct
     size_t xforms_len;
 }
 flame_t;
+
+// iteration state variables
+struct iter_state_t
+{
+    num_t x, y; // current point
+    num_t tx, ty; // pre affine transform applied
+    num_t vx, vy; // variation sum
+    jrand_t rand; // RNG state
+    xform_t *xf; // xform selected (contains params)
+    // precalculated variables (TODO enable)
+    // num_t pc_theta, pc_phi;
+    // num_t pc_sint, pc_cost;
+    // num_t pc_r, pc_r2;
+};

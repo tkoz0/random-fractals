@@ -37,7 +37,8 @@ static inline void _biunit_rand(num_t s, jrand_t *j, num_t *x, num_t *y)
 }
 
 // (x,y) -> (*xn,*yn)
-static inline void _apply_affine(affine_params *af, num_t *xn, num_t *yn, num_t x, num_t y)
+static inline void _apply_affine(affine_params *af, num_t *xn, num_t *yn,
+                                num_t x, num_t y)
 {
     *xn = af->a*x + af->b*y + af->c;
     *yn = af->d*x + af->e*y + af->f;
@@ -47,13 +48,16 @@ static inline void _apply_affine(affine_params *af, num_t *xn, num_t *yn, num_t 
 static inline void _apply_xform_basic(iter_state_t *state, xform_t *xf)
 {
     // transform point
-    _apply_affine(&(xf->pre_affine),&(state->tx),&(state->ty),state->x,state->y);
+    _apply_affine(&(xf->pre_affine),&(state->tx),&(state->ty),
+                    state->x,state->y);
     state->vx = 0.0;
     state->vy = 0.0;
+    state->xf = xf;
     for (uint32_t i = 0; i < xf->var_len; ++i) // sum variations
         (xf->vars[i])(state,xf->varw[i]);
     // update point
-    _apply_affine(&(xf->post_affine),&(state->x),&(state->y),state->vx,state->vy);
+    _apply_affine(&(xf->post_affine),&(state->x),&(state->y),
+                    state->vx,state->vy);
 }
 
 // normalize weights to sum to 1 for probability selection algorithm
@@ -128,6 +132,7 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
             // get the new point to settle before adding to histogram again
             for (uint32_t i = 0; i < SETTLE_ITERS; ++i)
                 _apply_xform_basic(&state,flame->xforms+_pick_xform(cw,jrand));
+            continue;
         }
 #ifdef STDERR_RENDER_INFO
         if (state.x < xmin) xmin = state.x;
