@@ -8,7 +8,6 @@
 #include "json.h"
 
 // uses asserts for parsing, fails if there is an error
-// uses inefficient linked lists to implement arrays and objects
 
 // wrapper for fprintf(stderr,..)
 static void _write_error(const char *f, ...)
@@ -55,7 +54,7 @@ static void _skip_whitespace(const char *data, size_t *i)
     }
 }
 
-// returns the string length, -1 if error
+// returns the string length
 // dest == NULL for counting length only, otherwise it writes string result
 // TODO does not support \u escape
 static size_t _process_string(const char *data, size_t *i, char *dest)
@@ -127,7 +126,7 @@ typedef union { json_int as_int; json_float as_float; } _jnum_t;
 #define _IS_NONZERO_DIGIT(c) ('1' <= (c) && (c) <= '9')
 #define _IS_E(c) ((c) == 'e' || (c) == 'E')
 
-// return 0 for integer, 1 for floating point, 2 for error
+// return 0 for integer, 1 for floating point
 // format from json.org -?(0|[1-9]\d*)(.\d+)?([Ee][+\-]?\d+)?
 // TODO this does not properly check validity of number formats
 static int _read_number(const char *data, size_t *i, _jnum_t *ret)
@@ -192,40 +191,104 @@ static int _read_number(const char *data, size_t *i, _jnum_t *ret)
     return is_float;
 }
 
-static json_value *_read_value(const char *data, size_t *i);
+// returns a newly allocated copy of the string
+static char *_copy_string(const char *s)
+{
+    char *ret = malloc(strlen(s)+1);
+    assert(ret);
+    strcpy(ret,s);
+    return ret;
+}
 
-static json_object *_read_object(const char *data, size_t *i)
+// string hash algorithm used in java
+static size_t _str_hash(const char *s)
+{
+    size_t h = 0;
+    while (*s)
+        h = (31*h) + (size_t)(*(s++));
+    return h;
+}
+
+// resize the hash table, growth factor is about 1.25
+static void _object_resize(json_object obj)
+{
+    struct _json_object_bucket *newbuckets;
+    size_t new_alloc = obj->alloc + (obj->alloc >> 2) + 2;
+    newbuckets = calloc(obj->alloc,sizeof(*newbuckets));
+    assert(newbuckets);
+    for (size_t i = 0; i < obj->alloc; ++i) // hash objects into new table
+    {
+        if (!obj->buckets[i].key) // null = empty
+            continue;
+        size_t h = _str_hash(obj->buckets[i].key);
+        h %= new_alloc;
+        while (newbuckets[h].key) // find empty bucket
+        {
+            ++h;
+            if (h == new_alloc)
+                h = 0;
+        }
+        newbuckets[h].key = obj->buckets[i].key;
+        newbuckets[h].value = obj->buckets[i].value;
+    }
+    if (obj->buckets) // only allocated if not null
+        free(obj->buckets);
+    // assign new hash table
+    obj->buckets = newbuckets;
+    obj->alloc = new_alloc;
+}
+
+// hash item into table, first resize if ~75% load factor is reached
+// key string is copied for insertion if needed
+void json_object_insert(json_object obj, const char *key, json_value value)
+{
+    if (obj->alloc == 0 || (obj->len >= obj->alloc - (obj->alloc >> 2) - 1))
+        _object_resize(obj);
+    size_t h = _str_hash(key);
+    h %= obj->alloc;
+    while (obj->buckets[h].key)
+    {
+        if (!strcmp(obj->buckets[h].key,key)) // found key, replace
+        {
+            json_destroy(obj->buckets[h].value);
+            obj->buckets[h].value = value;
+            ++obj->len;
+            return;
+        }
+        ++h;
+        if (h == obj->alloc)
+            h = 0;
+    }
+    // insert in empty bucket found
+    obj->buckets[h].key = _copy_string(key);
+    obj->buckets[h].value = value;
+    ++obj->len;
+}
+
+static json_value _read_value(const char *data, size_t *i);
+
+static json_object _read_object(const char *data, size_t *i)
 {
     assert(data[*i] == '{');
     ++(*i);
     _skip_whitespace(data,i);
-    json_object *head = NULL;
-    json_object *tail = NULL;
+    json_object obj;
+    obj->buckets = NULL;
+    obj->len = obj->alloc = 0;
     for (;;)
     {
         if (data[*i] == '}')
             break;
-        if (!head)
-        {
-            head = malloc(sizeof(*head));
-            assert(head);
-            tail = head;
-        }
-        else
-        {
-            tail->next = malloc(sizeof(*head));
-            assert(tail->next);
-            tail = tail->next;
-        }
-        tail->next = NULL;
         _skip_whitespace(data,i);
         char *s = _read_string(data,i);
         assert(s);
-        tail->key = s;
         _skip_whitespace(data,i);
         assert(data[*i] == ':');
         ++(*i);
-        tail->value = _read_value(data,i);
+        json_value value = _read_value(data,i);
+        assert(value);
+        json_object_insert(obj,s,value);
+        free(s);
         if (data[*i] == ',')
             ++(*i);
         else
@@ -235,34 +298,43 @@ static json_object *_read_object(const char *data, size_t *i)
         }
     }
     ++(*i);
-    return head;
+    return obj;
 }
 
-static json_array *_read_array(const char *data, size_t *i)
+// resize array with growth factor about 1.25
+static void _array_resize(json_array arr)
+{
+    json_value *newarray;
+    size_t new_alloc = arr->alloc + (arr->alloc >> 2) + 1;
+    newarray = realloc(arr->array,new_alloc);
+    assert(newarray);
+    arr->array = newarray;
+    arr->alloc = new_alloc;
+}
+
+// insert into array, resizing if necessary
+void json_array_append(json_array arr, json_value value)
+{
+    if (arr->len == arr->alloc)
+        _array_resize(arr);
+    arr->array[arr->len++] = value;
+}
+
+static json_array _read_array(const char *data, size_t *i)
 {
     assert(data[*i] == '[');
     ++(*i);
     _skip_whitespace(data,i);
-    json_array *head = NULL;
-    json_array *tail = NULL;
+    json_array arr;
+    arr->array = NULL;
+    arr->len = arr->alloc = 0;
     for (;;)
     {
         if (data[*i] == ']')
             break;
-        if (!head)
-        {
-            head = malloc(sizeof(*head));
-            assert(head);
-            tail = head;
-        }
-        else
-        {
-            tail->next = malloc(sizeof(*head));
-            assert(tail->next);
-            tail = tail->next;
-        }
-        tail->next = NULL;
-        tail->value = _read_value(data,i);
+        json_value value = _read_value(data,i);
+        assert(value);
+        json_array_append(arr,value);
         if (data[*i] == ',')
             ++(*i);
         else
@@ -272,13 +344,13 @@ static json_array *_read_array(const char *data, size_t *i)
         }
     }
     ++(*i);
-    return head;
+    return arr;
 }
 
-static json_value *_read_value(const char *data, size_t *i)
+static json_value _read_value(const char *data, size_t *i)
 {
     _skip_whitespace(data,i);
-    json_value *ret = malloc(sizeof(json_value));
+    json_value ret = malloc(sizeof(json_value));
     assert(ret);
     if (data[*i] == '"')
     {
@@ -344,10 +416,10 @@ static json_value *_read_value(const char *data, size_t *i)
 }
 
 // creates a JSON object (newly allocated) from a string
-json_value *json_load(const char *data)
+json_value json_load(const char *data)
 {
     size_t i = 0;
-    json_value *ret = _read_value(data,&i);
+    json_value ret = _read_value(data,&i);
     assert(!data[i]);
     return ret;
 }
@@ -401,7 +473,7 @@ static void _json_dump_str(char *buf, size_t *i, char *value)
 }
 
 // writes it to buf if buf is non null
-static void _json_dump_helper(json_value *data, uint32_t depth,
+static void _json_dump_helper(json_value data, uint32_t depth,
                         uint32_t indent, char *buf, size_t *i)
 {
     switch (data->type)
@@ -429,7 +501,7 @@ static void _json_dump_helper(json_value *data, uint32_t depth,
             _dump_string(buf,i,"{}");
             break;
         }
-        json_object *optr = data->value.as_object;
+        json_object optr = data->value.as_object;
         _dump_string(buf,i,"{");
         if (indent)
             _dump_string(buf,i,"\n");
@@ -566,7 +638,7 @@ size_t json_object_len(json_object *object)
 }
 
 // index an array, return NULL if out of bounds
-json_value *json_array_get(json_array *array, size_t index)
+json_value json_array_get(json_array *array, size_t index)
 {
     if (!array)
         return NULL;
@@ -580,7 +652,7 @@ json_value *json_array_get(json_array *array, size_t index)
 }
 
 // get the value corresponding to a key, return NULL if not exist
-json_value *json_object_get(json_object *object, const char *key)
+json_value json_object_get(json_object *object, const char *key)
 {
     if (!object)
         return NULL;
