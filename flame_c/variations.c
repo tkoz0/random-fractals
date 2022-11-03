@@ -5,13 +5,13 @@
 #include "types.h"
 #include "variations.h"
 
-// squared 2-norm
+// squared 2-norm (precalc_sumsq)
 static inline num_t _r2(num_t x, num_t y)
 {
     return x*x + y*y;
 }
 
-// 2-norm
+// 2-norm (precalc_sqrt)
 static inline num_t _r(num_t x, num_t y)
 {
     return sqrtf(_r2(x,y));
@@ -19,13 +19,13 @@ static inline num_t _r(num_t x, num_t y)
 
 // angles
 
-// atan2(x,y)
+// atan2(x,y) (precalc_atan)
 static inline num_t _theta(num_t x, num_t y)
 {
     return atan2(x,y);
 }
 
-// atan2(y,x)
+// atan2(y,x) (precalc_atanyx)
 static inline num_t _phi(num_t x, num_t y)
 {
     return atan2(y,x);
@@ -139,6 +139,14 @@ void var9_spiral(iter_state_t *state, num_t weight)
     state->vy += r1 * (sin(a) - cr);
 }
 
+void var10_hyperbolic(iter_state_t *state, num_t weight)
+{
+    num_t r = _r(state->tx,state->ty) + _EPS;
+    num_t a = _theta(state->tx,state->ty);
+    state->vx += weight * sin(a) / r;
+    state->vy += weight * cos(a) * r;
+}
+
 const var_info_t VARIATIONS[] =
 {
     {"linear", &var0_linear, 0},
@@ -151,5 +159,6 @@ const var_info_t VARIATIONS[] =
     {"heart", &var7_heart, 0},
     {"disc", &var8_disc, 0},
     {"spiral", &var9_spiral, 0},
+    {"hyperbolic", &var10_hyperbolic, 0},
     {NULL,NULL,0}
 };

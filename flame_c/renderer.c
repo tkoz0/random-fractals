@@ -12,6 +12,9 @@
 // write extra stats to stderr
 #define STDERR_RENDER_INFO
 
+// whether to run the post affine transform
+#define ENABLE_POST_AFFINE
+
 // adjustments that may help increase performance
 void optimize_flame(flame_t *flame)
 {
@@ -56,8 +59,13 @@ static inline void _apply_xform_basic(iter_state_t *state, xform_t *xf)
     for (uint32_t i = 0; i < xf->var_len; ++i) // sum variations
         (xf->vars[i])(state,xf->varw[i]);
     // update point
+#ifdef ENABLE_POST_AFFINE
     _apply_affine(&(xf->post_affine),&(state->x),&(state->y),
                     state->vx,state->vy);
+#else
+    state->x = state->vx;
+    state->y = state->vy;
+#endif
 }
 
 // normalize weights to sum to 1 for probability selection algorithm
@@ -106,7 +114,7 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
     for (uint32_t i = 0; i < SETTLE_ITERS; ++i)
         _apply_xform_basic(&state,flame->xforms+_pick_xform(cw,jrand));
 #ifdef STDERR_RENDER_INFO
-    uint32_t *_dist = calloc(flame->xforms_len,sizeof(*_dist));
+    uint32_t *xfdist = calloc(flame->xforms_len,sizeof(*xfdist));
     num_t xmin=INFINITY,xmax=-INFINITY,ymin=INFINITY,ymax=-INFINITY;
 #endif
     uint64_t samples = flame->samples;
@@ -115,7 +123,7 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
         uint32_t xf_i = _pick_xform(cw,jrand);
         _apply_xform_basic(&state,flame->xforms+xf_i);
 #ifdef STDERR_RENDER_INFO
-        ++_dist[xf_i];
+        ++xfdist[xf_i];
 #endif
         if (bad_value(state.x) || bad_value(state.y))
         {
@@ -150,12 +158,12 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
 #ifdef STDERR_RENDER_INFO
     fprintf(stderr,"  xform distribution");
     for (uint32_t i = 0; i < flame->xforms_len; ++i)
-        fprintf(stderr," %u",_dist[i]);
+        fprintf(stderr," %u",xfdist[i]);
     fprintf(stderr,"\n");
     fprintf(stderr,"  x extremes %f %f\n",xmin,xmax);
     fprintf(stderr,"  y extremes %f %f\n",ymin,ymax);
     fprintf(stderr,"  bad values: %lu\n",bad_value_count);
-    free(_dist);
+    free(xfdist);
 #endif
     free(cw);
 }

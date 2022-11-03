@@ -192,15 +192,15 @@ static int _read_number(const char *data, size_t *i, _jnum_t *ret)
     return is_float;
 }
 
-static json_value *_read_value(const char *data, size_t *i);
+static json_value _read_value(const char *data, size_t *i);
 
-static json_object *_read_object(const char *data, size_t *i)
+static json_object _read_object(const char *data, size_t *i)
 {
     assert(data[*i] == '{');
     ++(*i);
     _skip_whitespace(data,i);
-    json_object *head = NULL;
-    json_object *tail = NULL;
+    json_object head = NULL;
+    json_object tail = NULL;
     for (;;)
     {
         if (data[*i] == '}')
@@ -238,13 +238,13 @@ static json_object *_read_object(const char *data, size_t *i)
     return head;
 }
 
-static json_array *_read_array(const char *data, size_t *i)
+static json_array _read_array(const char *data, size_t *i)
 {
     assert(data[*i] == '[');
     ++(*i);
     _skip_whitespace(data,i);
-    json_array *head = NULL;
-    json_array *tail = NULL;
+    json_array head = NULL;
+    json_array tail = NULL;
     for (;;)
     {
         if (data[*i] == ']')
@@ -275,10 +275,10 @@ static json_array *_read_array(const char *data, size_t *i)
     return head;
 }
 
-static json_value *_read_value(const char *data, size_t *i)
+static json_value _read_value(const char *data, size_t *i)
 {
     _skip_whitespace(data,i);
-    json_value *ret = malloc(sizeof(json_value));
+    json_value ret = malloc(sizeof(*ret));
     assert(ret);
     if (data[*i] == '"')
     {
@@ -344,10 +344,10 @@ static json_value *_read_value(const char *data, size_t *i)
 }
 
 // creates a JSON object (newly allocated) from a string
-json_value *json_load(const char *data)
+json_value json_load(const char *data)
 {
     size_t i = 0;
-    json_value *ret = _read_value(data,&i);
+    json_value ret = _read_value(data,&i);
     assert(!data[i]);
     return ret;
 }
@@ -401,7 +401,7 @@ static void _json_dump_str(char *buf, size_t *i, char *value)
 }
 
 // writes it to buf if buf is non null
-static void _json_dump_helper(json_value *data, uint32_t depth,
+static void _json_dump_helper(json_value data, uint32_t depth,
                         uint32_t indent, char *buf, size_t *i)
 {
     switch (data->type)
@@ -429,7 +429,7 @@ static void _json_dump_helper(json_value *data, uint32_t depth,
             _dump_string(buf,i,"{}");
             break;
         }
-        json_object *optr = data->value.as_object;
+        json_object optr = data->value.as_object;
         _dump_string(buf,i,"{");
         if (indent)
             _dump_string(buf,i,"\n");
@@ -463,7 +463,7 @@ static void _json_dump_helper(json_value *data, uint32_t depth,
             _dump_string(buf,i,"[]");
             break;
         }
-        json_array *aptr = data->value.as_array;
+        json_array aptr = data->value.as_array;
         _dump_string(buf,i,"[");
         if (indent)
             _dump_string(buf,i,"\n");
@@ -500,7 +500,7 @@ static void _json_dump_helper(json_value *data, uint32_t depth,
 }
 
 // if indent is 0, outputs as a compact string (newly allocated)
-char *json_dump(json_value *data, uint32_t indent)
+char *json_dump(json_value data, uint32_t indent)
 {
     size_t len = 0;
     _json_dump_helper(data,0,indent,NULL,&len);
@@ -513,16 +513,16 @@ char *json_dump(json_value *data, uint32_t indent)
 }
 
 // free all the dynamically allocated memory associated with a JSON value
-void json_destroy(json_value *json)
+void json_destroy(json_value json)
 {
     if (json->type == JSON_STRING)
         free(json->value.as_str);
     else if (json->type == JSON_OBJECT)
     {
-        json_object *ptr = json->value.as_object;
+        json_object ptr = json->value.as_object;
         while (ptr)
         {
-            json_object *ptr_old = ptr;
+            json_object ptr_old = ptr;
             free(ptr->key);
             json_destroy(ptr->value);
             ptr = ptr->next;
@@ -531,10 +531,10 @@ void json_destroy(json_value *json)
     }
     else if (json->type == JSON_ARRAY)
     {
-        json_array *ptr = json->value.as_array;
+        json_array ptr = json->value.as_array;
         while (ptr)
         {
-            json_array *ptr_old = ptr;
+            json_array ptr_old = ptr;
             json_destroy(ptr->value);
             ptr = ptr->next;
             free(ptr_old);
@@ -543,7 +543,7 @@ void json_destroy(json_value *json)
     free(json);
 }
 
-size_t json_array_len(json_array *array)
+size_t json_array_len(json_array array)
 {
     size_t ret = 0;
     while (array)
@@ -554,7 +554,7 @@ size_t json_array_len(json_array *array)
     return ret;
 }
 
-size_t json_object_len(json_object *object)
+size_t json_object_len(json_object object)
 {
     size_t ret = 0;
     while (object)
@@ -566,7 +566,7 @@ size_t json_object_len(json_object *object)
 }
 
 // index an array, return NULL if out of bounds
-json_value *json_array_get(json_array *array, size_t index)
+json_value json_array_get(json_array array, size_t index)
 {
     if (!array)
         return NULL;
@@ -580,7 +580,7 @@ json_value *json_array_get(json_array *array, size_t index)
 }
 
 // get the value corresponding to a key, return NULL if not exist
-json_value *json_object_get(json_object *object, const char *key)
+json_value json_object_get(json_object object, const char *key)
 {
     if (!object)
         return NULL;

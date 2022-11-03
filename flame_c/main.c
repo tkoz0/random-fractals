@@ -124,16 +124,16 @@ int main(int argc, char **argv)
     assert(argc > 1);
     char *filedata = read_file(argv[1]);
     assert(filedata);
-    json_value *jsondata = json_load(filedata);
+    json_value jsondata = json_load(filedata);
     assert(jsondata);
     free(filedata);
-    flame_list *flames = flames_from_json(jsondata);
+    flame_list flames = flames_from_json(jsondata);
     json_destroy(jsondata);
     assert(flames);
     // buffer
     size_t size_x_max = 0;
     size_t size_y_max = 0;
-    flame_list *flame_ptr = flames;
+    flame_list flame_ptr = flames;
     while (flame_ptr) // find max size for buffer
     {
         if (flame_ptr->value.size_x > size_x_max)
@@ -164,6 +164,7 @@ int main(int argc, char **argv)
         out_file = fopen(fname,"wb");
         assert(out_file);
         fwrite(buf,sizeof(*buf),flame->size_x*flame->size_y,out_file);
+        fclose(out_file);
         fprintf(stderr,"wrote %s\n",fname);
         free(fname);
         flame_ptr = flame_ptr->next;
