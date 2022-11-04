@@ -147,6 +147,28 @@ void var10_hyperbolic(iter_state_t *state, num_t weight)
     state->vy += weight * cos(a) * r;
 }
 
+void var11_diamond(iter_state_t *state, num_t weight)
+{
+    num_t r = _r(state->tx,state->ty);
+    num_t a = _theta(state->tx,state->ty);
+    num_t sr,cr;
+    sincosf(r,&sr,&cr);
+    state->vx += weight * sin(a) * cr;
+    state->vy += weight * cos(a) * sr;
+}
+
+void var12_ex(iter_state_t *state, num_t weight)
+{
+    num_t a = _theta(state->tx,state->ty);
+    num_t r = _r(state->tx,state->ty);
+    num_t n0 = sin(a+r);
+    num_t n1 = cos(a-r);
+    num_t m0 = n0*n0*n0*r;
+    num_t m1 = n1*n1*n1*r;
+    state->vx += weight * (m0 + m1);
+    state->vy += weight * (m0 - m1);
+}
+
 const var_info_t VARIATIONS[] =
 {
     {"linear", &var0_linear, 0},
@@ -160,5 +182,7 @@ const var_info_t VARIATIONS[] =
     {"disc", &var8_disc, 0},
     {"spiral", &var9_spiral, 0},
     {"hyperbolic", &var10_hyperbolic, 0},
+    {"diamond", &var11_diamond, 0},
+    {"ex", &var12_ex, 0},
     {NULL,NULL,0}
 };

@@ -16,6 +16,9 @@ void var6_handkerchief(iter_state_t *state, num_t weight);
 void var7_heart(iter_state_t *state, num_t weight);
 void var8_disc(iter_state_t *state, num_t weight);
 void var9_spiral(iter_state_t *state, num_t weight);
+void var10_hyperbolic(iter_state_t *state, num_t weight);
+void var11_diamond(iter_state_t *state, num_t weight);
+void var12_ex(iter_state_t *state, num_t weight);
 
 typedef struct
 {
