@@ -46,13 +46,6 @@ typedef float num_t;
 // identity affine transformation (x,y) -> (x,y)
 #define NULL_AFFINE ((affine_params){1.0,0.0,0.0,0.0,1.0,0.0})
 
-// check for NaN and very large/small values
-// TODO make this faster by checking only for +-inf and NaN
-static inline bool bad_value(num_t n)
-{
-    return (n > 1e10) || (n < -1e10) || (n != n);
-}
-
 // parameters for affine transformation
 typedef struct
 {
@@ -71,6 +64,7 @@ typedef struct { num_t x, y; } point_t;
 
 // parameters for variations
 // TODO add to this for more variations
+// TODO may make sense to limit size of this if variations are not needed
 typedef struct
 {
 }

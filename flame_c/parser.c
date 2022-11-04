@@ -64,8 +64,8 @@ static void _set_num_from_index(json_array j, size_t i, num_t *dest)
 }
 
 // defaults and some sanity checks
-#define SIZE_X_DEFAULT 256
-#define SIZE_Y_DEFAULT 256
+#define SIZE_X_DEFAULT 512
+#define SIZE_Y_DEFAULT 512
 #define SIZE_X_MAX 100000
 #define SIZE_Y_MAX 100000
 #define X_DIM 1.0

@@ -7,13 +7,28 @@
 #include "types.h"
 
 // iterations from the start that are not plotted for the IFS to "settle"
+// the papers suggest using 20 for this value
 #define SETTLE_ITERS 50
 
 // write extra stats to stderr
-#define STDERR_RENDER_INFO
+#define STDERR_RENDER_STATS
 
 // whether to run the post affine transform
+// this may make sense to disable when it is not used
 #define ENABLE_POST_AFFINE
+
+// maximum number of bad value messages to output
+#define BAD_VALUE_LIMIT 10
+
+// absolute value of numbers to trigger bad value (non contractive system)
+#define BAD_VALUE_THRESHOLD 1e10
+
+// check for NaN and very large/small values
+// TODO make this faster by checking only for +-inf and NaN
+static inline bool bad_value(num_t n)
+{
+    return (n > BAD_VALUE_THRESHOLD) || (n < -BAD_VALUE_THRESHOLD) || (n != n);
+}
 
 // adjustments that may help increase performance
 void optimize_flame(flame_t *flame)
@@ -93,6 +108,7 @@ static inline uint32_t _pick_xform(num_t *cw, jrand_t *jrand)
 
 // histogram length == flame->size_x * flame->size_y
 // histogram indexed by (flame->size_x * y_pos) + x_pos
+// TODO support final xform
 void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
 {
     uint64_t bad_value_count = 0;
@@ -101,6 +117,7 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
     _normalize_xform_weights(flame->xforms,flame->xforms_len);
     // form cumulative weights array for random xform selection
     num_t *cw = malloc(sizeof(*cw)*flame->xforms_len);
+    assert(cw);
     num_t s = 0.0;
     for (uint32_t i = 0; i < flame->xforms_len; ++i)
     {
@@ -113,8 +130,9 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
     _biunit_rand(1.0,jrand,&(state.x),&(state.y));
     for (uint32_t i = 0; i < SETTLE_ITERS; ++i)
         _apply_xform_basic(&state,flame->xforms+_pick_xform(cw,jrand));
-#ifdef STDERR_RENDER_INFO
+#ifdef STDERR_RENDER_STATS
     uint32_t *xfdist = calloc(flame->xforms_len,sizeof(*xfdist));
+    assert(xfdist);
     num_t xmin=INFINITY,xmax=-INFINITY,ymin=INFINITY,ymax=-INFINITY;
 #endif
     uint64_t samples = flame->samples;
@@ -122,27 +140,36 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
     {
         uint32_t xf_i = _pick_xform(cw,jrand);
         _apply_xform_basic(&state,flame->xforms+xf_i);
-#ifdef STDERR_RENDER_INFO
+#ifdef STDERR_RENDER_STATS
         ++xfdist[xf_i];
 #endif
         if (bad_value(state.x) || bad_value(state.y))
         {
             ++bad_value_count;
-            if (bad_value_count <= 10)
+            if (bad_value_count <= BAD_VALUE_LIMIT)
             {
                 fprintf(stderr,"renderer_basic(): bad_value (x,y) = (%f,%f)\n",
                     state.x,state.y);
-                if (bad_value_count == 10)
+                if (bad_value_count == BAD_VALUE_LIMIT)
+                {
                     fprintf(stderr,"renderer_basic(): not showing more "
                         "bad value errors\n");
+                    fprintf(stderr,"IFS may not be contractive on average\n");
+                }
             }
             _biunit_rand(1.0,jrand,&(state.x),&(state.y));
             // get the new point to settle before adding to histogram again
             for (uint32_t i = 0; i < SETTLE_ITERS; ++i)
                 _apply_xform_basic(&state,flame->xforms+_pick_xform(cw,jrand));
+            // count re-settling against sample count so rendering does not
+            // hang when rendering a system reaching bad values frequently
+            if (samples >= SETTLE_ITERS)
+                samples -= SETTLE_ITERS;
+            else
+                samples = 0;
             continue;
         }
-#ifdef STDERR_RENDER_INFO
+#ifdef STDERR_RENDER_STATS
         if (state.x < xmin) xmin = state.x;
         if (state.x > xmax) xmax = state.x;
         if (state.y < ymin) ymin = state.y;
@@ -155,7 +182,7 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
         uint32_t y = (state.y - flame->ymin) * ymul;
         ++histogram[(flame->size_x*y)+x];
     }
-#ifdef STDERR_RENDER_INFO
+#ifdef STDERR_RENDER_STATS
     fprintf(stderr,"  xform distribution");
     for (uint32_t i = 0; i < flame->xforms_len; ++i)
         fprintf(stderr," %u",xfdist[i]);
