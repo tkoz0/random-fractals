@@ -16,23 +16,8 @@ Usage: ./a.out [-r <seed>]
 #include "parser.h"
 #include "renderer.h"
 #include "types.h"
+#include "utils.h"
 #include "variations.h"
-
-// read entire file contents into newly allocated null terminated string
-char *read_file(const char *fname)
-{
-    FILE *f = fopen(fname,"r");
-    fseek(f,0,SEEK_END);
-    size_t length = ftell(f);
-    fseek(f,0,SEEK_SET);
-    char *buf = malloc(length+1);
-    assert(buf);
-    buf[length] = '\0';
-    size_t read_length = fread(buf,1,length,f);
-    assert(read_length == length);
-    fclose(f);
-    return buf;
-}
 
 static inline num_t _scale_linear(uint32_t n)
 {
@@ -122,7 +107,7 @@ void render_flame(flame_t *flame, uint32_t *buf, uint8_t *img)
 int main(int argc, char **argv)
 {
     assert(argc > 1);
-    char *filedata = read_file(argv[1]);
+    char *filedata = read_text_file(argv[1]);
     assert(filedata);
     json_value jsondata = json_load(filedata);
     assert(jsondata);
