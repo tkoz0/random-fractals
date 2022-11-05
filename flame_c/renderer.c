@@ -15,13 +15,17 @@
 
 // whether to run the post affine transform
 // this may make sense to disable when it is not used
-#define ENABLE_POST_AFFINE
+//#define DISABLE_POST_AFFINE
 
 // maximum number of bad value messages to output
+// only applies if STDERR_RENDER_STATS is enabled
 #define BAD_VALUE_LIMIT 10
 
 // absolute value of numbers to trigger bad value (non contractive system)
 #define BAD_VALUE_THRESHOLD 1e10
+
+// force equal probability selection for all xforms, regardless of input
+//#define FORCE_EQUAL_XFORM_SELECTION
 
 // check for NaN and very large/small values
 // TODO make this faster by checking only for +-inf and NaN
@@ -33,7 +37,8 @@ static inline bool bad_value(num_t n)
 // adjustments that may help increase performance
 void optimize_flame(flame_t *flame)
 {
-    // insertion sort xforms in order of decreasing weight
+    // insertion sort xforms in order of decreasing weight so
+    // cumulative weight selection loop ends sooner on average
     for (size_t i = 1; i < flame->xforms_len; ++i)
     {
         size_t j = i;
@@ -74,7 +79,7 @@ static inline void _apply_xform_basic(iter_state_t *state, xform_t *xf)
     for (uint32_t i = 0; i < xf->var_len; ++i) // sum variations
         (xf->vars[i])(state,xf->varw[i]);
     // update point
-#ifdef ENABLE_POST_AFFINE
+#ifndef DISABLE_POST_AFFINE
     _apply_affine(&(xf->post_affine),&(state->x),&(state->y),
                     state->vx,state->vy);
 #else
@@ -83,6 +88,7 @@ static inline void _apply_xform_basic(iter_state_t *state, xform_t *xf)
 #endif
 }
 
+#ifndef FORCE_EQUAL_XFORM_SELECTION
 // normalize weights to sum to 1 for probability selection algorithm
 static void _normalize_xform_weights(xform_t *xforms, uint32_t len)
 {
@@ -94,16 +100,21 @@ static void _normalize_xform_weights(xform_t *xforms, uint32_t len)
     for (xf2 = xforms; xf2 != xf; ++xf2)
         xf2->weight /= wsum;
 }
+#endif
 
 // randomly select flame based on cumulative weights
 // TODO support doing this with binary search for better efficiency
-static inline uint32_t _pick_xform(num_t *cw, jrand_t *jrand)
+static inline uint32_t _pick_xform(num_t *cw, jrand_t *jrand, uint32_t xflen)
 {
+#ifndef FORCE_EQUAL_XFORM_SELECTION
     uint32_t ret = 0;
     num_t rand = jrand_next_float(jrand);
     while (cw[ret] < rand)
         ++ret;
     return ret;
+#else
+    return jrand_next_int_mod(jrand,xflen);
+#endif
 }
 
 // histogram length == flame->size_x * flame->size_y
@@ -114,9 +125,11 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
     uint64_t bad_value_count = 0;
     num_t xmul = (float) flame->size_x / (flame->xmax - flame->xmin);
     num_t ymul = (float) flame->size_y / (flame->ymax - flame->ymin);
+    num_t *cw = NULL;
+#ifndef FORCE_EQUAL_XFORM_SELECTION
     _normalize_xform_weights(flame->xforms,flame->xforms_len);
     // form cumulative weights array for random xform selection
-    num_t *cw = malloc(sizeof(*cw)*flame->xforms_len);
+    cw = malloc(sizeof(*cw)*flame->xforms_len);
     assert(cw);
     num_t s = 0.0;
     for (uint32_t i = 0; i < flame->xforms_len; ++i)
@@ -125,11 +138,13 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
         cw[i] = s;
     }
     cw[flame->xforms_len-1] = 1.0; // to correct for rounding error
+#endif
     iter_state_t state;
     state.rand = *jrand;
     _biunit_rand(1.0,jrand,&(state.x),&(state.y));
     for (uint32_t i = 0; i < SETTLE_ITERS; ++i)
-        _apply_xform_basic(&state,flame->xforms+_pick_xform(cw,jrand));
+        _apply_xform_basic(&state,
+            flame->xforms+_pick_xform(cw,jrand,flame->xforms_len));
 #ifdef STDERR_RENDER_STATS
     uint32_t *xfdist = calloc(flame->xforms_len,sizeof(*xfdist));
     assert(xfdist);
@@ -138,7 +153,7 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
     uint64_t samples = flame->samples;
     while (samples--)
     {
-        uint32_t xf_i = _pick_xform(cw,jrand);
+        uint32_t xf_i = _pick_xform(cw,jrand,flame->xforms_len);
         _apply_xform_basic(&state,flame->xforms+xf_i);
 #ifdef STDERR_RENDER_STATS
         ++xfdist[xf_i];
@@ -160,7 +175,8 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
             _biunit_rand(1.0,jrand,&(state.x),&(state.y));
             // get the new point to settle before adding to histogram again
             for (uint32_t i = 0; i < SETTLE_ITERS; ++i)
-                _apply_xform_basic(&state,flame->xforms+_pick_xform(cw,jrand));
+                _apply_xform_basic(&state,
+                    flame->xforms+_pick_xform(cw,jrand,flame->xforms_len));
             // count re-settling against sample count so rendering does not
             // hang when rendering a system reaching bad values frequently
             if (samples >= SETTLE_ITERS)

@@ -55,118 +55,123 @@ static inline num_t _lambda(jrand_t *j)
     return _LAMBDA_TABLE[jrand_next_bool(j)];
 }
 
-void var0_linear(iter_state_t *state, num_t weight)
+// helper macros (prefix _C_ for compute)
+#define _X (S->tx)
+#define _Y (S->ty)
+#define _C_R2 _r2(S->tx,S->ty)
+#define _C_R _r(S->tx,S->ty)
+#define _C_ATAN _theta(S->tx,S->ty)
+#define _C_ATANYX _phi(S->tx,S->ty)
+// define this since the sincos depends on the type of num_t
+// regular sin/cos can use the type generic macros
+#define _SINCOS(x,y,z) sincosf(x,y,z)
+
+void var0_linear(iter_state_t *S, num_t W)
 {
-    state->vx += weight * state->tx;
-    state->vy += weight * state->ty;
+    S->vx += W * _X;
+    S->vy += W * _Y;
 }
 
-void var1_sinusoidal(iter_state_t *state, num_t weight)
+void var1_sinusoidal(iter_state_t *S, num_t W)
 {
-    state->vx += weight * sin(state->tx);
-    state->vy += weight * sin(state->ty);
+    S->vx += W * sin(_X);
+    S->vy += W * sin(_Y);
 }
 
-void var2_spherical(iter_state_t *state, num_t weight)
+void var2_spherical(iter_state_t *S, num_t W)
 {
-    num_t r = weight / (_r2(state->tx,state->ty) + _EPS);
-    state->vx += r * state->tx;
-    state->vy += r * state->ty;
+    num_t r = W / (_C_R2 + _EPS);
+    S->vx += r * _X;
+    S->vy += r * _Y;
 }
 
-void var3_swirl(iter_state_t *state, num_t weight)
+void var3_swirl(iter_state_t *S, num_t W)
 {
-    num_t r2 = _r2(state->tx,state->ty);
     num_t sr,cr;
-    sincosf(r2,&sr,&cr);
-    state->vx += weight * (sr*state->tx - cr*state->ty);
-    state->vy += weight * (cr*state->tx + sr*state->ty);
+    _SINCOS(_C_R2,&sr,&cr);
+    S->vx += W * (sr*_X - cr*_Y);
+    S->vy += W * (cr*_X + sr*_Y);
 }
 
-void var4_horseshoe(iter_state_t *state, num_t weight)
+void var4_horseshoe(iter_state_t *S, num_t W)
 {
-    num_t r = weight / (_r(state->tx,state->ty) + _EPS);
-    state->vx += (state->tx - state->ty) * (state->tx + state->ty) * r;
-    state->vy += 2.0*state->tx*state->ty * r;
+    num_t r = W / (_C_R + _EPS);
+    S->vx += (_X-_Y) * (_X+_Y) * r;
+    S->vy += 2.0*_X*_Y * r;
 }
 
-void var5_polar(iter_state_t *state, num_t weight)
+void var5_polar(iter_state_t *S, num_t W)
 {
-    num_t a = _theta(state->tx,state->ty);
-    num_t r = _r(state->tx,state->ty);
-    state->vx += weight * a * _1_PI;
-    state->vy += weight * (r - 1.0);
+    S->vx += W * _C_ATAN * _1_PI;
+    S->vy += W * (_C_R - 1.0);
 }
 
-void var6_handkerchief(iter_state_t *state, num_t weight)
+void var6_handkerchief(iter_state_t *S, num_t W)
 {
-    num_t a = _theta(state->tx,state->ty);
-    num_t r = _r(state->tx,state->ty);
-    num_t rw = weight * r;
-    state->vx += rw * sin(a+r);
-    state->vy += rw * cos(a-r);
+    num_t a = _C_ATAN;
+    num_t r = _C_R;
+    num_t rw = W * r;
+    S->vx += rw * sin(a+r);
+    S->vy += rw * cos(a-r);
 }
 
-void var7_heart(iter_state_t *state, num_t weight)
+void var7_heart(iter_state_t *S, num_t W)
 {
-    num_t r = _r(state->tx,state->ty);
-    num_t a = r * _theta(state->tx,state->ty);
+    num_t r = _C_R;
     num_t sin_a,cos_a;
-    sincosf(a,&sin_a,&cos_a);
-    r *= weight;
-    state->vx += r * sin_a;
-    state->vy += -r * cos_a;
+    _SINCOS(r*_C_ATAN,&sin_a,&cos_a);
+    r *= W;
+    S->vx += r * sin_a;
+    S->vy += -r * cos_a;
 }
 
-void var8_disc(iter_state_t *state, num_t weight)
+void var8_disc(iter_state_t *S, num_t W)
 {
-    num_t a = _theta(state->tx,state->ty) * _1_PI * weight;
-    num_t r = _PI * _r(state->tx,state->ty);
+    num_t a = _C_ATAN * _1_PI * W;
     num_t sr,cr;
-    sincosf(r,&sr,&cr);
-    state->vx += sr * a;
-    state->vy += cr * a;
+    _SINCOS(_PI*_C_R,&sr,&cr);
+    S->vx += sr * a;
+    S->vy += cr * a;
 }
 
-void var9_spiral(iter_state_t *state, num_t weight)
+void var9_spiral(iter_state_t *S, num_t W)
 {
-    num_t a = _theta(state->tx,state->ty);
-    num_t r = _r(state->tx,state->ty) + _EPS;
+    num_t a = _C_ATAN;
+    num_t r = _C_R + _EPS;
     num_t sr,cr;
-    sincosf(r,&sr,&cr);
-    num_t r1 = weight/r;
-    state->vx += r1 * (cos(a) + sr);
-    state->vy += r1 * (sin(a) - cr);
+    _SINCOS(r,&sr,&cr);
+    num_t r1 = W/r;
+    S->vx += r1 * (cos(a) + sr);
+    S->vy += r1 * (sin(a) - cr);
 }
 
-void var10_hyperbolic(iter_state_t *state, num_t weight)
+void var10_hyperbolic(iter_state_t *S, num_t W)
 {
-    num_t r = _r(state->tx,state->ty) + _EPS;
-    num_t a = _theta(state->tx,state->ty);
-    state->vx += weight * sin(a) / r;
-    state->vy += weight * cos(a) * r;
+    num_t r = _C_R + _EPS;
+    num_t a = _C_ATAN;
+    S->vx += W * sin(a) / r;
+    S->vy += W * cos(a) * r;
 }
 
-void var11_diamond(iter_state_t *state, num_t weight)
+void var11_diamond(iter_state_t *S, num_t W)
 {
-    num_t r = _r(state->tx,state->ty);
-    num_t a = _theta(state->tx,state->ty);
+    num_t a = _C_ATAN;
     num_t sr,cr;
-    sincosf(r,&sr,&cr);
-    state->vx += weight * sin(a) * cr;
-    state->vy += weight * cos(a) * sr;
+    sincosf(_C_R,&sr,&cr);
+    S->vx += W * sin(a) * cr;
+    S->vy += W * cos(a) * sr;
 }
 
-void var12_ex(iter_state_t *state, num_t weight)
+void var12_ex(iter_state_t *S, num_t W)
 {
-    num_t a = _theta(state->tx,state->ty);
-    num_t r = _r(state->tx,state->ty);
+    num_t a = _C_ATAN;
+    num_t r = _C_R;
     num_t n0 = sin(a+r);
     num_t n1 = cos(a-r);
-    num_t m0 = n0*n0*n0*r;
-    num_t m1 = n1*n1*n1*r;
-    state->vx += weight * (m0 + m1);
-    state->vy += weight * (m0 - m1);
+    num_t m0 = n0*n0*n0 * r;
+    num_t m1 = n1*n1*n1 * r;
+    S->vx += W * (m0 + m1);
+    S->vy += W * (m0 - m1);
 }
 
 const var_info_t VARIATIONS[] =
