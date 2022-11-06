@@ -67,6 +67,9 @@ typedef struct { num_t x, y; } point_t;
 // TODO may make sense to limit size of this if variations are not needed
 typedef struct
 {
+    num_t blob_high;
+    num_t blob_low;
+    num_t blob_waves;
 }
 var_params_t;
 

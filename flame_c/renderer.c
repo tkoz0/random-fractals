@@ -31,7 +31,7 @@
 // TODO make this faster by checking only for +-inf and NaN
 static inline bool bad_value(num_t n)
 {
-    return (n > BAD_VALUE_THRESHOLD) || (n < -BAD_VALUE_THRESHOLD) || (n != n);
+    return (fabs(n) > BAD_VALUE_THRESHOLD) || isnan(n);
 }
 
 // adjustments that may help increase performance
@@ -186,10 +186,10 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
             continue;
         }
 #ifdef STDERR_RENDER_STATS
-        if (state.x < xmin) xmin = state.x;
-        if (state.x > xmax) xmax = state.x;
-        if (state.y < ymin) ymin = state.y;
-        if (state.y > ymax) ymax = state.y;
+        xmin = fmin(xmin,state.x);
+        xmax = fmax(xmax,state.x);
+        ymin = fmin(ymin,state.y);
+        ymax = fmax(ymax,state.y);
 #endif
         if (state.x < flame->xmin || state.x >= flame->xmax
             || state.y < flame->ymin || state.y >= flame->ymax)
@@ -208,5 +208,7 @@ void render_basic(flame_t *flame, uint32_t *histogram, jrand_t *jrand)
     fprintf(stderr,"  bad values: %lu\n",bad_value_count);
     free(xfdist);
 #endif
+#ifndef FORCE_EQUAL_XFORM_SELECTION
     free(cw);
+#endif
 }
