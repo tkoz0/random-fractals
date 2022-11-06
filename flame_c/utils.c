@@ -1,6 +1,7 @@
 #include "utils.h"
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 // read entire file contents into newly allocated null terminated string
 char *read_text_file(const char *fname)
@@ -16,6 +17,28 @@ char *read_text_file(const char *fname)
     assert(read_length == length);
     fclose(f);
     return buf;
+}
+
+// read stdin until end and return a newly allocated null terminated string
+char *read_stdin_text()
+{
+    char buf[512];
+    char *result = malloc(1);
+    assert(result);
+    result[0] = '\0';
+    size_t size = 1;
+    size_t ret;
+    // read buffer and append each time
+    while ((ret = fread(buf,1,512,stdin)))
+    {
+        size_t newsize = size + ret;
+        result = realloc(result,newsize);
+        assert(result);
+        memcpy(result+size-1,buf,ret);
+        result[newsize-1] = '\0';
+        size = newsize;
+    }
+    return result;
 }
 
 // sets buf to a newly allocated array of the file contents

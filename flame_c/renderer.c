@@ -50,6 +50,38 @@ void optimize_flame(flame_t *flame)
             --j;
         }
     }
+    // remove variations with weight 0
+    for (size_t i = 0; i < flame->xforms_len; ++i)
+    {
+        xform_t *xf = flame->xforms+i;
+        size_t var_count = 0;
+        for (size_t j = 0; j < xf->var_len; ++j)
+            if (xf->varw[j] != 0.0)
+                ++var_count;
+        // reallocate and store nonzero variations
+        // if var_count == 0, leave memory allocated
+        if (var_count > 0 && var_count < xf->var_len)
+        {
+            num_t *varw = malloc(var_count*sizeof(*varw));
+            var_func_t *vars = malloc(var_count*sizeof(*vars));
+            assert(varw);
+            assert(vars);
+            size_t k = 0;
+            for (size_t j = 0; j < xf->var_len; ++j)
+            {
+                if (xf->varw[j] == 0.0)
+                    continue;
+                varw[k] = xf->varw[j];
+                vars[k] = xf->vars[j];
+                ++k;
+            }
+            free(xf->vars);
+            free(xf->varw);
+            xf->vars = vars;
+            xf->varw = varw;
+        }
+        xf->var_len = var_count;
+    }
 }
 
 // random point in [-s,s]x[-s,s]
